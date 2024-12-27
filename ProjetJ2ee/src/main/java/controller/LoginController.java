@@ -2,45 +2,63 @@ package controller;
 
 import java.io.IOException;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-public class LoginController {
+@WebServlet("/login")
+public class LoginController extends HttpServlet {
 
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        handle(request, response);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        handle(request, response);
+    }
+
+    // Modifie la mÃ©thode pour qu'elle soit publique
     public void handle(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         String action = request.getParameter("action");
-        
+
         if ("login".equals(action)) {
-            // Récupérer paramètres du formulaire (username, password)
             String username = request.getParameter("username");
             String password = request.getParameter("password");
-            
-            // Pour tester sans BDD : on fait un test bidon
+
             if ("admin".equals(username) && "123".equals(password)) {
-                // On stocke l’info en session
                 HttpSession session = request.getSession();
                 session.setAttribute("loggedUser", username);
-                
-                // Puis on redirige vers la page "game.jsp" (par exemple)
                 RequestDispatcher rd = request.getRequestDispatcher("/game.jsp");
                 rd.forward(request, response);
             } else {
-                // Erreur de login
                 request.setAttribute("errorMessage", "Identifiants incorrects");
-                RequestDispatcher rd = request.getRequestDispatcher("/login.jsp");
+                RequestDispatcher rd = request.getRequestDispatcher("/vue/login.jsp");
                 rd.forward(request, response);
             }
         } else if ("register".equals(action)) {
-            // Traitement d’une création de compte
-            // On pourrait enregistrer l’utilisateur en BDD, etc.
-            // Ici on fait un test bidon
-            request.setAttribute("msg", "Inscription effectuée (fictive)!");
-            RequestDispatcher rd = request.getRequestDispatcher("/login.jsp");
-            rd.forward(request, response);
+            String username = request.getParameter("username");
+            String password = request.getParameter("password");
+
+            if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
+                request.setAttribute("errorMessage", "Veuillez remplir tous les champs !");
+                RequestDispatcher rd = request.getRequestDispatcher("/register.jsp");
+                rd.forward(request, response);
+            } else {
+                request.setAttribute("msg", "Inscription rÃ©ussie ! Vous pouvez vous connecter.");
+                RequestDispatcher rd = request.getRequestDispatcher("/vue/login.jsp");
+                rd.forward(request, response);
+            }
+        } else {
+            response.sendRedirect("/vue/login.jsp");
         }
     }
 }

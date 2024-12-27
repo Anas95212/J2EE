@@ -8,7 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.RequestDispatcher;
 
-@WebServlet("/*") // Intercepte toutes les requêtes qui arrivent sur l'application
+@WebServlet("/controller")
 public class FrontControllerServlet extends HttpServlet {
 
     @Override
@@ -26,35 +26,43 @@ public class FrontControllerServlet extends HttpServlet {
     private void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // 1) Récupérer l'action demandée (ex: ?action=login ou ?action=moveSoldier)
-        String action = request.getParameter("action");
-        
-        if (action == null) {
-            action = "";
+        String path = request.getServletPath();
+
+        // Exclusion des JSP et des ressources statiques (CSS, JS, etc.)
+        if (path.endsWith(".jsp") || path.startsWith("/css") || path.startsWith("/js")) {
+            RequestDispatcher rd = request.getRequestDispatcher(path);
+            rd.forward(request, response);
+            return;
         }
-        
-        // 2) Rediriger vers le contrôleur approprié
+
+        // RÃ©cupÃ©ration de l'action demandÃ©e (ex: ?action=login)
+        String action = request.getParameter("action");
+
+        if (action == null || action.isEmpty()) {
+            action = ""; // Par dÃ©faut, aucune action
+        }
+
+        // Redirection vers le contrÃ´leur appropriÃ© en fonction de l'action
         switch (action) {
             case "login":
             case "register":
-                // On délègue la requête à LoginController
+                // DÃ©lÃ©guer la requÃªte Ã  LoginController
                 new LoginController().handle(request, response);
                 break;
-                
+
             case "move":
             case "attack":
-                // On délègue la requête à ActionsController
+                // DÃ©lÃ©guer la requÃªte Ã  ActionsController
                 new ActionsController().handle(request, response);
                 break;
-                
+
             case "score":
-                // On délègue la requête à ScoreController
+                // DÃ©lÃ©guer la requÃªte Ã  ScoreController
                 new ScoreController().handle(request, response);
                 break;
-                
+
             default:
-                // Action par défaut ou page d'accueil
-                // Par exemple, on forward vers une JSP "home.jsp"
+                // Action par dÃ©faut ou page d'accueil
                 RequestDispatcher rd = request.getRequestDispatcher("/home.jsp");
                 rd.forward(request, response);
                 break;

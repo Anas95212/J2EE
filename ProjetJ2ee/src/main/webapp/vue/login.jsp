@@ -7,17 +7,17 @@
 </head>
 <body>
     <h1>Bienvenue dans le jeu 4X</h1>
-    <form action="LoginController" method="post">
-        <label for="username">Nom d'utilisateur :</label>
-        <input type="text" id="username" name="username" required>
-        <br>
-        <label for="password">Mot de passe :</label>
-        <input type="password" id="password" name="password" required>
-        <br>
-        <button type="submit">Se connecter</button>
-    </form>
-    <form action="LoginController" method="post">
-        <button type="submit" name="action" value="register">Créer un compte</button>
-    </form>
+    <form action="controller" method="post">
+    <input type="hidden" name="action" value="login">
+    <label for="username">Nom d'utilisateur :</label>
+    <input type="text" id="username" name="username" required>
+    <br>
+    <label for="password">Mot de passe :</label>
+    <input type="password" id="password" name="password" required>
+    <br>
+    <button type="submit">Se connecter</button>
+</form>
+<p><a href="register.jsp">Créer un compte</a></p>
+
 </body>
 </html>

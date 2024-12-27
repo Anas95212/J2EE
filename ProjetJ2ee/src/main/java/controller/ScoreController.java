@@ -11,7 +11,7 @@ public class ScoreController {
     public void handle(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
-        // Ex : récupérer le score depuis la session ou BDD
+        // Ex : rÃ©cupÃ©rer le score depuis la session ou BDD
         // Pour tester, on fait un score bidon
         int fakeScore = 42; 
         request.setAttribute("playerScore", fakeScore);
