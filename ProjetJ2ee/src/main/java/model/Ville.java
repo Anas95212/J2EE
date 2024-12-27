@@ -110,7 +110,7 @@ public class Ville extends Tuile {
                 "x=" + getX() +
                 ", y=" + getY() +
                 ", pointsDeDefense=" + pointsDeDefense +
-                ", proprietaire=" + (proprietaire != null ? proprietaire.getPseudo() : "Neutre") +
+                ", proprietaire=" + (proprietaire != null ? proprietaire.getLogin() : "Neutre") +
                 '}';
     }
 }
