@@ -1,53 +1,66 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="model.Carte" %>
-<%@ page import="model.Tuile.TypeTuile" %>
+<%@ page import="javax.servlet.http.HttpSession" %>
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Jeu 4X</title>
-    <link rel="stylesheet" type="text/css" href="style.css" />
+    <title>Jeu 4X - Carte du Jeu</title>
+    <style>
+        .game-grid {
+            border-collapse: collapse;
+        }
+        .game-grid td {
+            width: 40px;
+            height: 40px;
+            border: 1px solid black;
+            text-align: center;
+        }
+        .game-grid .vide {
+            background-color: #f4f4f4;
+        }
+        .game-grid .ville {
+            background-color: #d4a017;
+        }
+        .game-grid .foret {
+            background-color: #228b22;
+        }
+        .game-grid .montagne {
+            background-color: #8b4513;
+        }
+    </style>
 </head>
 <body>
-    <h1>Carte du jeu</h1>
+    <h1>Jeu 4X - Carte du Jeu</h1>
 
     <%
-        // Exemple de récupération d'une carte (à adapter avec votre logique réelle)
-        Carte carte = (Carte) request.getServletContext().getAttribute("gameMap");
+        // Vérifier si la carte est déjà en session
+        HttpSession session = request.getSession();
+        Carte carte = (Carte) session.getAttribute("carte");
+
         if (carte == null) {
-            carte = new Carte(10, 10); // Crée une carte par défaut
-            carte.mettreAJourTuile(0, 0, TypeTuile.VILLE, false);
-            carte.mettreAJourTuile(2, 2, TypeTuile.FORET, false);
-            carte.mettreAJourTuile(4, 4, TypeTuile.MONTAGNE, true);
-            request.getServletContext().setAttribute("gameMap", carte);
+            // Si aucune carte n'existe, on la crée et on la stocke en session
+            carte = new Carte(15, 15);
+            carte.initialiserCarte();
+            session.setAttribute("carte", carte);
         }
+
+        // Générer le HTML de la carte
+        String carteHTML = carte.toHTML();
     %>
-    <div id="game-map">
-        <%= carte.toHTML() %>
+
+    <div>
+        <h3>Carte :</h3>
+        <div><%= carteHTML %></div>
     </div>
 
-    <h2>Actions :</h2>
-    <form action="FrontControllerServlet" method="post">
-        <input type="hidden" name="action" value="move" />
-        <label for="direction">Direction :</label>
-        <select name="dir" id="direction">
-            <option value="north">Nord</option>
-            <option value="south">Sud</option>
-            <option value="east">Est</option>
-            <option value="west">Ouest</option>
-        </select>
-        <button type="submit">Déplacer</button>
-    </form>
-
-    <form action="FrontControllerServlet" method="post">
-        <input type="hidden" name="action" value="attack" />
-        <button type="submit">Attaquer</button>
-    </form>
-
-    <c:if test="${not empty moveMessage}">
-        <p>${moveMessage}</p>
-    </c:if>
-    <c:if test="${not empty attackMessage}">
-        <p>${attackMessage}</p>
-    </c:if>
+    <div>
+        <h3>Actions :</h3>
+        <form action="game?action=move" method="post">
+            <button type="submit" name="direction" value="north">Move North</button>
+            <button type="submit" name="direction" value="south">Move South</button>
+            <button type="submit" name="direction" value="east">Move East</button>
+            <button type="submit" name="direction" value="west">Move West</button>
+        </form>
+    </div>
 </body>
 </html>

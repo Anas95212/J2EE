@@ -13,7 +13,7 @@ public class Tuile {
 	 * Enumération représentant les différents types de tuiles possibles dans le jeu.
 	 */
 	public enum TypeTuile {
-	    VILLE, FORET, MONTAGNE, VIDE
+	    VILLE, FORET, MONTAGNE, SOLDAT, VIDE
 	}
 	
     /**

@@ -26,16 +26,6 @@ public class FrontControllerServlet extends HttpServlet {
     private void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String path = request.getServletPath();
-
-        // Exclusion des JSP et des ressources statiques (CSS, JS, etc.)
-        if (path.endsWith(".jsp") || path.startsWith("/css") || path.startsWith("/js")) {
-            RequestDispatcher rd = request.getRequestDispatcher(path);
-            rd.forward(request, response);
-            return;
-        }
-
-        // Récupération de l'action demandée (ex: ?action=login)
         String action = request.getParameter("action");
 
         if (action == null || action.isEmpty()) {
@@ -45,19 +35,19 @@ public class FrontControllerServlet extends HttpServlet {
         // Redirection vers le contrôleur approprié en fonction de l'action
         switch (action) {
             case "login":
-            case "register":
-                // Déléguer la requête à LoginController
                 new LoginController().handle(request, response);
+                break;
+
+            case "register":
+                new LoginController().handle(request, response); // Gérer l'inscription
                 break;
 
             case "move":
             case "attack":
-                // Déléguer la requête à ActionsController
                 new ActionsController().handle(request, response);
                 break;
 
             case "score":
-                // Déléguer la requête à ScoreController
                 new ScoreController().handle(request, response);
                 break;
 

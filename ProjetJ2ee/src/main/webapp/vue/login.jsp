@@ -7,7 +7,7 @@
 </head>
 <body>
     <h1>Bienvenue dans le jeu 4X</h1>
-    <form action="controller" method="post">
+    <form action="<%= request.getContextPath() %>/controller"e method="post">
     <input type="hidden" name="action" value="login">
     <label for="username">Nom d'utilisateur :</label>
     <input type="text" id="username" name="username" required>
@@ -17,7 +17,8 @@
     <br>
     <button type="submit">Se connecter</button>
 </form>
-<p><a href="register.jsp">Créer un compte</a></p>
+<% String contextPath = request.getContextPath(); %>
+<p>Pas encore de compte ? <a href="<%= contextPath %>/vue/register.jsp">Inscrivez-vous ici</a></p>
 
 </body>
 </html>
