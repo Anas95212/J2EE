@@ -1,6 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="model.Carte" %>
-<%@ page import="jakarta.servlet.http.HttpSession" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -33,8 +32,9 @@
     <h1>Jeu 4X - Carte du Jeu</h1>
 
     <%
-        // Vérifier si la carte est déjà en session
-        HttpSession session = request.getSession();
+        // session est implicitement disponible dans une JSP
+        // donc PAS de "HttpSession session = request.getSession();" ici
+
         Carte carte = (Carte) session.getAttribute("carte");
 
         if (carte == null) {

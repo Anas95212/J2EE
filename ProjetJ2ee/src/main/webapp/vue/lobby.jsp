@@ -40,54 +40,117 @@
             margin-top: 30px;
         }
     </style>
+    
+    <%
+    // Récupère le pseudo depuis la session HTTP (stocké lors du login)
+    String pseudo = (String) session.getAttribute("loggedUser");
+    if (pseudo == null) {
+        // S'il n'est pas logué, on le renvoie à la page de login
+        response.sendRedirect(request.getContextPath() + "/vue/login.jsp");
+        return;
+    }
+	%>
+    
     <script>
         let socket;
+        let loggedUser = "<%= pseudo %>";
+        /**
+         * Se connecte au WebSocket "ws://localhost:8080/ProjetJ2ee/ws/parties",
+         * puis gère les différents messages reçus (liste des parties, redirect, error).
+         */
+         function connectWebSocket() {
+             // On construit l'URL en ajoutant ?user=...
+             const wsUrl = "ws://localhost:8080/ProjetJ2ee/ws/parties?user=" 
+                           + encodeURIComponent(loggedUser);
+             console.log("Connexion WebSocket URL =", wsUrl);
 
-        function connectWebSocket() {
-            socket = new WebSocket("ws://localhost:8080/ProjetJ2ee/ws/parties");
+             socket = new WebSocket(wsUrl);
 
-            socket.onopen = function () {
-                console.log("WebSocket connecté.");
-            };
-            
-            socket.onerror = function(event) {
-                console.error("WebSocket Error: ", event);
-            };
+             socket.onopen = function () {
+                 console.log("WebSocket connecté pour pseudo =", loggedUser);
+             };
 
-            socket.onmessage = function (event) {
-                const parties = JSON.parse(event.data);
-                const listeParties = document.getElementById("liste-parties");
-                listeParties.innerHTML = "";
+             socket.onclose = function () {
+                 console.log("WebSocket déconnecté.");
+             };
 
-                if (parties.length === 0) {
-                    listeParties.innerHTML = "<p>Aucune partie disponible.</p>";
-                    return;
-                }
+             socket.onerror = function(event) {
+                 console.error("WebSocket Error: ", event);
+             };
 
-                parties.forEach(partie => {
-                    const item = document.createElement("div");
-                    item.innerHTML = `
-                        <b>ID: ${partie.gameId}</b> - <b>${partie.nom}</b> - ${partie.joueurs.length}/${partie.maxJoueurs} joueurs 
-                        <button class="button" onclick="rejoindrePartie('${partie.gameId}')" ${partie.joueurs.length >= partie.maxJoueurs ? "disabled" : ""}>
-                            Rejoindre
-                        </button>
-                    `;
-                    listeParties.appendChild(item);
-                });
-            };
+             /**
+              * Handler principal des messages reçus du serveur.
+              */
+             socket.onmessage = function(event) {
+                 const rawData = event.data;
+                 console.log("Message brut reçu du serveur :", rawData);
 
+                 let data;
+                 try {
+                     data = JSON.parse(rawData);
+                 } catch (parseError) {
+                     console.error("Erreur de parsing JSON :", parseError);
+                     return;
+                 }
 
+                 // 1) Si data est un tableau => c'est la liste des parties
+                 if (Array.isArray(data)) {
+                     majListeParties(data);
+                     return;
+                 }
 
-            socket.onclose = function () {
-                console.log("WebSocket déconnecté.");
-            };
+                 // 2) Si on a data.redirect => on redirige vers salleAttente.jsp
+                 if (data.redirect) {
+                     console.log("Redirection demandée vers :", data.redirect);
+                     window.location.href = data.redirect;
+                     return;
+                 }
 
-            socket.onerror = function (error) {
-                console.error("Erreur WebSocket : ", error);
-            };
+                 // 3) Si on a data.error => on affiche une alerte
+                 if (data.error) {
+                     console.error("Erreur reçue :", data.error);
+                     alert("Erreur : " + data.error);
+                     return;
+                 }
+
+                 // Sinon, c'est un format de message inconnu
+                 console.warn("Message non géré :", data);
+             };
+         }
+
+        /**
+         * Met à jour l'affichage des parties dans la <div id="liste-parties">,
+         * en créant un <div> par partie et en désactivant le bouton Rejoindre
+         * si la partie est déjà pleine.
+         * @param {Array} parties - Liste d'objets {gameId, nom, maxJoueurs, joueurs[], ...}
+         */
+        function majListeParties(parties) {
+            const listeParties = document.getElementById("liste-parties");
+            // On vide le contenu actuel
+            listeParties.innerHTML = "";
+
+            parties.forEach(partie => {
+                const item = document.createElement("div");
+
+                // Si la partie est pleine => bouton disabled
+                const disabledAttr = (partie.joueurs.length >= partie.maxJoueurs) ? "disabled" : "";
+
+                // Construction du HTML
+                const content =
+                    "<b>ID: " + partie.gameId + "</b>" +
+                    " - <b>" + partie.nom + "</b>" +
+                    " - " + partie.joueurs.length + "/" + partie.maxJoueurs + " joueurs " +
+                    "<button class='button' onclick='rejoindrePartie(\"" + partie.gameId + "\")' " +
+                          disabledAttr + ">Rejoindre</button>";
+
+                item.innerHTML = content;
+                listeParties.appendChild(item);
+            });
         }
 
-
+        /**
+         * Envoie une action "creerPartie" au serveur pour créer une nouvelle partie.
+         */
         function creerPartie() {
             const nom = document.getElementById("nom-partie").value;
             const maxJoueurs = document.getElementById("max-joueurs").value;
@@ -96,13 +159,17 @@
             }
         }
 
+        /**
+         * Envoie une action "rejoindrePartie" au serveur pour rejoindre la partie indiquée.
+         * Si le serveur accepte, il renverra { "redirect":"salleAttente.jsp?gameId=..." }
+         * (ce qui déclenchera la redirection dans onmessage).
+         */
         function rejoindrePartie(gameId) {
-            console.log("Tentative de rejoindre la partie avec gameId :", gameId); // Log
+            console.log("Tentative de rejoindre la partie avec gameId =", gameId);
             socket.send(JSON.stringify({ action: "rejoindrePartie", gameId }));
         }
 
-
-
+        // Se connecte au WebSocket dès que la page est chargée
         window.onload = connectWebSocket;
     </script>
 </head>

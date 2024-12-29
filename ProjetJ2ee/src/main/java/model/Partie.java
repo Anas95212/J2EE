@@ -4,116 +4,203 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Classe représentant une partie de jeu multijoueur.
+ * Représente une partie multijoueur.
  */
 public class Partie {
-    private String gameId; // Identifiant unique de la partie
-    private String nomPartie; // Nom de la partie
-    private int maxJoueurs; // Nombre maximum de joueurs
-    private List<Joueur> joueurs; // Liste des joueurs participants
-    private boolean enCours; // État de la partie (true = en cours, false = en attente)
-    private Carte carte; // Carte de la partie
+    /** Identifiant unique de la partie (exemple : "GAME-123456789"). */
+    private String gameId;
+    
+    /** Nom choisi pour la partie (ex: "Ma Partie Fun"). */
+    private String nomPartie;
+    
+    /** Nombre maximum de joueurs autorisés dans cette partie. */
+    private int maxJoueurs;
+    
+    /** Liste des joueurs actuellement présents dans la partie. */
+    private List<Joueur> joueurs;
+    
+    /** Indique si la partie est en cours (true) ou en attente (false). */
+    private boolean enCours;
+    
+    /** Carte associée à la partie (exemple : terrain de jeu 2D). */
+    private Carte carte;
+    
+    /**
+     * Identifie le créateur de la partie (ex : "Joueur_12345").
+     * Cette information permet de gérer des actions réservées (ex: lancer la partie).
+     */
+    private String createur;
 
     /**
-     * Constructeur pour initialiser une nouvelle partie.
-     *
-     * @param nomPartie  Le nom de la partie.
-     * @param maxJoueurs Le nombre maximum de joueurs.
+     * Constructeur par défaut (sans préciser le créateur).
+     * @param nomPartie nom donné à la partie
+     * @param maxJoueurs nombre maximum de joueurs
      */
     public Partie(String nomPartie, int maxJoueurs) {
+        // On appelle le nouveau constructeur en passant createur=null
+        this(nomPartie, maxJoueurs, null);
+    }
+
+    /**
+     * Constructeur principal, permettant de préciser le créateur de la partie.
+     * @param nomPartie nom donné à la partie
+     * @param maxJoueurs nombre maximum de joueurs
+     * @param createur identifiant du créateur (ex: "Joueur_12345")
+     */
+    public Partie(String nomPartie, int maxJoueurs, String createur) {
         this.gameId = generateGameId();
         this.nomPartie = nomPartie;
         this.maxJoueurs = maxJoueurs;
         this.joueurs = new ArrayList<>();
         this.enCours = false;
-        this.carte = new Carte(15, 15); // Par défaut, une carte 15x15
+        this.carte = new Carte(15, 15); 
         this.carte.initialiserCarte();
+        this.createur = createur; // On stocke le créateur
     }
 
     /**
-     * Génère un identifiant unique pour la partie.
-     * 
-     * @return Un ID unique.
+     * Génère un identifiant unique pour la partie
+     * basé sur l'horodatage système.
+     * @return un identifiant unique (ex: "GAME-1684923477463")
      */
     private String generateGameId() {
         return "GAME-" + System.currentTimeMillis();
     }
 
-    // Getters et setters
+    // -------------------------
+    // Getters / Setters
+    // -------------------------
+    
+    /**
+     * Retourne l'ID unique de la partie.
+     * @return l'identifiant (ex: "GAME-12345")
+     */
     public String getGameId() {
         return gameId;
     }
 
+    /**
+     * Retourne le nom de la partie.
+     * @return nom de la partie
+     */
     public String getNomPartie() {
         return nomPartie;
     }
 
+    /**
+     * Définit (modifie) le nom de la partie.
+     * @param nomPartie nouveau nom
+     */
     public void setNomPartie(String nomPartie) {
         this.nomPartie = nomPartie;
     }
 
+    /**
+     * Retourne le nombre max. de joueurs autorisés.
+     * @return le nombre maximal de joueurs
+     */
     public int getMaxJoueurs() {
         return maxJoueurs;
     }
 
+    /**
+     * Définit la limite de joueurs autorisés.
+     * @param maxJoueurs nombre max. de joueurs
+     */
     public void setMaxJoueurs(int maxJoueurs) {
         this.maxJoueurs = maxJoueurs;
     }
 
+    /**
+     * Retourne la liste actuelle des joueurs participants.
+     * @return liste des joueurs
+     */
     public List<Joueur> getJoueurs() {
         return joueurs;
     }
 
+    /**
+     * Indique si la partie est en cours (true) ou non (false).
+     * @return true si la partie est en cours, false sinon
+     */
     public boolean isEnCours() {
         return enCours;
     }
 
+    /**
+     * Modifie l'état de la partie (en cours ou non).
+     * @param enCours true pour lancer la partie, false pour la signaler en attente
+     */
     public void setEnCours(boolean enCours) {
         this.enCours = enCours;
     }
 
+    /**
+     * Retourne la carte du jeu associée à cette partie.
+     * @return carte de la partie
+     */
     public Carte getCarte() {
         return carte;
     }
 
+    /**
+     * Définit la carte du jeu associée à cette partie.
+     * @param carte instance de Carte
+     */
     public void setCarte(Carte carte) {
         this.carte = carte;
     }
 
     /**
-     * Ajoute un joueur à la partie.
-     *
-     * @param joueur Le joueur à ajouter.
-     * @return true si le joueur a été ajouté, false si la partie est pleine.
+     * Retourne l'identifiant du créateur de la partie.
+     * @return ex: "Joueur_12345"
+     */
+    public String getCreateur() {
+        return createur;
+    }
+
+    /**
+     * Modifie (redéfinit) le créateur de la partie.
+     * @param createur nouveau créateur
+     */
+    public void setCreateur(String createur) {
+        this.createur = createur;
+    }
+
+    // -------------------------
+    // Méthodes de gestion
+    // -------------------------
+
+    /**
+     * Tente d'ajouter un joueur dans la partie.
+     * @param joueur joueur à ajouter
+     * @return true si l'ajout est réussi, false si la partie est pleine
      */
     public boolean ajouterJoueur(Joueur joueur) {
         if (joueurs.size() < maxJoueurs) {
             joueurs.add(joueur);
             return true;
         }
-        return false; // La partie est pleine
+        return false;
     }
-    
-    
+
     /**
      * Retire un joueur de la partie.
-     *
-     * @param joueur Le joueur à retirer.
-     * @return true si le joueur a été retiré avec succès, false sinon.
+     * @param joueur joueur à retirer
+     * @return true si le joueur a été trouvé et retiré, false sinon
      */
     public boolean retirerJoueur(Joueur joueur) {
         if (joueurs.contains(joueur)) {
             joueurs.remove(joueur);
             return true;
         }
-        return false; // Le joueur n'était pas dans la partie
+        return false;
     }
 
     /**
-     * Vérifie si un joueur est déjà dans la partie.
-     *
-     * @param joueur Le joueur à vérifier.
-     * @return true si le joueur est dans la partie, false sinon.
+     * Vérifie si un joueur précis est déjà dans cette partie.
+     * @param joueur joueur à vérifier
+     * @return true si le joueur est présent, false sinon
      */
     public boolean contientJoueur(Joueur joueur) {
         return joueurs.contains(joueur);
@@ -127,6 +214,7 @@ public class Partie {
                 ", maxJoueurs=" + maxJoueurs +
                 ", joueurs=" + joueurs.size() +
                 ", enCours=" + enCours +
+                ", createur=" + createur +
                 '}';
     }
 }
