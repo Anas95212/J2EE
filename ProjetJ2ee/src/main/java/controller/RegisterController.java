@@ -3,6 +3,7 @@ package controller;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import jakarta.servlet.ServletException;
@@ -23,11 +24,25 @@ public class RegisterController extends HttpServlet {
             String username = request.getParameter("username");
             String password = request.getParameter("password");
 
-            if (username != null && password != null) {
+            if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
                 try (Connection conn = DatabaseConnection.getConnection()) {
-                    // Préparer la requête SQL
-                    String query = "INSERT INTO utilisateurs (pseudo, mdp, score) VALUES (?, ?, ?)";
-                    try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    // Vérifier si le pseudo existe déjà dans la base de données
+                    String checkQuery = "SELECT COUNT(*) FROM utilisateurs WHERE pseudo = ?";
+                    try (PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
+                        checkStmt.setString(1, username);
+                        try (ResultSet rs = checkStmt.executeQuery()) {
+                            if (rs.next() && rs.getInt(1) > 0) {
+                                // Le pseudo existe déjà
+                                request.setAttribute("errorMessage", "Ce pseudo est déjà utilisé. Veuillez en choisir un autre.");
+                                request.getRequestDispatcher("/vue/register.jsp").forward(request, response);
+                                return;
+                            }
+                        }
+                    }
+
+                    // Insérer le nouvel utilisateur si le pseudo n'existe pas
+                    String insertQuery = "INSERT INTO utilisateurs (pseudo, mdp, score) VALUES (?, ?, ?)";
+                    try (PreparedStatement stmt = conn.prepareStatement(insertQuery)) {
                         stmt.setString(1, username);
                         stmt.setString(2, password);
                         stmt.setInt(3, 0); // Score initial de l'utilisateur
