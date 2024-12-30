@@ -51,7 +51,7 @@
 </head>
 <body>
     <h1>Créer un compte</h1>
-    <form action="<%= request.getContextPath() %>/controller" method="post">
+    <form action="<%= request.getContextPath() %>/Registercontroller" method="post">
         <input type="hidden" name="action" value="register">
         <label for="username">Nom d'utilisateur :</label>
         <input type="text" id="username" name="username" required>
