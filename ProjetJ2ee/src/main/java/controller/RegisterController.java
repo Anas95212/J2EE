@@ -33,7 +33,7 @@ public class RegisterController extends HttpServlet {
                         try (ResultSet rs = checkStmt.executeQuery()) {
                             if (rs.next() && rs.getInt(1) > 0) {
                                 // Le pseudo existe déjà
-                                request.setAttribute("errorMessage", "Ce pseudo est déjà utilisé. Veuillez en choisir un autre.");
+                                request.setAttribute("errorMessage", "Ce pseudo est déjà utilisé, choisissez un autre.");
                                 request.getRequestDispatcher("/vue/register.jsp").forward(request, response);
                                 return;
                             }

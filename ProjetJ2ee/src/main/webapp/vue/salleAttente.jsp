@@ -4,22 +4,100 @@
 <head>
     <title>Salle d'attente</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .button:hover {
-            background-color: #45a049;
-        }
-        .error {
-            color: red;
-        }
+        /* STYLE GLOBAL */
+	body {
+	    font-family: 'Arial', sans-serif; /* Police moderne */
+	    background-color: #2d2d2d; /* Fond sombre */
+	    color: #fff; /* Texte en blanc pour contraste */
+	    margin: 0;
+	    padding: 0;
+	    display: flex;
+	    justify-content: center;
+	    align-items: center;
+	    flex-direction: column;
+	    height: 100vh; /* Prend toute la hauteur de la fenêtre */
+	}
+	
+	/* TITRE PRINCIPAL */
+	h1 {
+	    text-align: center;
+	    margin-bottom: 20px;
+	    font-size: 28px;
+	    color: #ffd700; /* Doré pour le titre */
+	    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+	}
+	
+	/* INFORMATIONS ET ERREURS */
+	#error-message {
+	    color: red;
+	    font-size: 14px;
+	    margin: 10px 0;
+	}
+	
+	#info {
+	    text-align: center;
+	    margin: 20px 0;
+	    background-color: #3b3b3b; /* Fond du bloc d'information */
+	    padding: 20px;
+	    border-radius: 10px;
+	    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Ombre légère */
+	}
+	
+	/* LISTE DES JOUEURS */
+	ul {
+	    list-style: none; /* Retire les puces */
+	    padding: 0;
+	    margin: 0;
+	}
+	
+	ul li {
+	    background-color: #444; /* Fond légèrement plus clair */
+	    color: #fff; /* Texte blanc */
+	    padding: 10px;
+	    margin-bottom: 10px;
+	    border-radius: 5px; /* Coins arrondis */
+	    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Ombre légère */
+	}
+	
+	/* BOUTON */
+	button {
+	    background-color: #4CAF50; /* Vert agréable */
+	    color: white;
+	    border: none;
+	    padding: 10px 20px;
+	    font-size: 16px;
+	    margin-top: 20px;
+	    border-radius: 5px;
+	    cursor: pointer;
+	    transition: all 0.3s ease;
+	    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Ombre légère */
+	}
+	
+	button:hover {
+	    background-color: #45a049; /* Vert légèrement plus foncé au survol */
+	    transform: translateY(-3px); /* Effet de levée */
+	    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); /* Ombre renforcée au survol */
+	}
+	/* LISTE DES JOUEURS CONNECTÉS */
+	#listeJoueurs {
+	    display: flex; /* Utilise le mode flex */
+	    flex-wrap: wrap; /* Permet de passer à la ligne si trop d'éléments */
+	    gap: 10px; /* Espacement entre les joueurs */
+	    list-style: none; /* Supprime les puces */
+	    padding: 0;
+	    margin: 20px 0;
+	}
+	
+	#listeJoueurs li {
+	    background-color: #444; /* Fond légèrement contrasté */
+	    color: #fff; /* Texte blanc */
+	    padding: 10px 15px;
+	    border-radius: 5px; /* Coins arrondis */
+	    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.3); /* Ombre légère */
+	    white-space: nowrap; /* Empêche les noms trop longs de passer à la ligne */
+	    text-align: center; /* Centre le texte */
+	}
+	
     </style>
     <script>
         let socket;

@@ -113,7 +113,7 @@
 
         if (carte == null) {
             // Si aucune carte n'existe, on la crée et on la stocke en session
-            carte = new Carte(15, 15);
+            carte = new Carte(12, 12);
             carte.initialiserCarte();
             session.setAttribute("carte", carte);
         }
@@ -122,19 +122,23 @@
         String carteHTML = carte.toHTML();
     %>
 
-    <div>
-        <h3>Carte :</h3>
-        <div><%= carteHTML %></div>
-    </div>
+    <div class="container">
+        <!-- Conteneur de la grille -->
+        <div class="game-grid-container">
+            <h3>Carte :</h3>
+            <div><%= carteHTML %></div>
+        </div>
 
-    <div>
-        <h3>Actions :</h3>
-        <form action="game?action=move" method="post">
-            <button type="submit" name="direction" value="north">Move North</button>
-            <button type="submit" name="direction" value="south">Move South</button>
-            <button type="submit" name="direction" value="east">Move East</button>
-            <button type="submit" name="direction" value="west">Move West</button>
-        </form>
+        <!-- Conteneur des actions (boutons) -->
+        <div class="actions">
+            <h3>Actions :</h3>
+            <form action="game?action=move" method="post">
+                <button type="submit" name="direction" value="north">Move North</button>
+                <button type="submit" name="direction" value="south">Move South</button>
+                <button type="submit" name="direction" value="east">Move East</button>
+                <button type="submit" name="direction" value="west">Move West</button>
+            </form>
+        </div>
     </div>
 </body>
 </html>

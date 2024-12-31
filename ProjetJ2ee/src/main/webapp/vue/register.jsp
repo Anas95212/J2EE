@@ -98,31 +98,32 @@
     </style>
 </head>
 <body>
-    <h1>Créer un compte</h1>
-    <form action="<%= request.getContextPath() %>/Registercontroller" method="post">
-        <input type="hidden" name="action" value="register">
-        <label for="username">Nom d'utilisateur :</label>
-        <input type="text" id="username" name="username" required>
-        <br>
-        <label for="password">Mot de passe :</label>
-        <input type="password" id="password" name="password" required>
-        <br>
-        <button type="submit">S'inscrire</button>
-    </form>
-
-    <!-- Afficher les messages d'erreur ou de succès -->
-    <% 
-        String errorMessage = (String) request.getAttribute("errorMessage");
-        String successMessage = (String) request.getAttribute("msg");
-        if (errorMessage != null) { 
-    %>
-        <div class="message error"><%= errorMessage %></div>
-    <% 
-        } else if (successMessage != null) { 
-    %>
-        <div class="message success"><%= successMessage %></div>
-    <% 
-        } 
-    %>
+	<div>
+	    <h1>Créer un compte</h1>
+	    <!-- Afficher les messages d'erreur ou de succès -->
+	    <% 
+	        String errorMessage = (String) request.getAttribute("errorMessage");
+	        String successMessage = (String) request.getAttribute("msg");
+	        if (errorMessage != null) { 
+	    %>
+	        <div class="message error" style="color: red";><%= errorMessage %></div></br>
+	    <% 
+	        } else if (successMessage != null) { 
+	    %>
+	        <div class="message success" style="color: green;"><%= successMessage %></div></br>
+	    <% 
+	        } 
+	    %>
+	    <form action="<%= request.getContextPath() %>/Registercontroller" method="post">
+	        <input type="hidden" name="action" value="register">
+	        <label for="username">Nom d'utilisateur :</label>
+	        <input type="text" id="username" name="username" required>
+	        <label for="password">Mot de passe :</label>
+	        <input type="password" id="password" name="password" required>
+	        <button type="submit">S'inscrire</button>
+	    </form>
+	    <% String contextPath = request.getContextPath(); %>
+	    <p>Déjà un compte ? <a href="<%= contextPath %>/vue/login.jsp">Connectez-vous ici</a></p>
+    </div>
 </body>
 </html>
