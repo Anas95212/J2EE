@@ -4,42 +4,132 @@
 <head>
     <title>Lobby des Parties</title>
     <style>
+        /* STYLE GLOBAL */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            background-color: #2d2d2d; /* Fond sombre */
+            color: #fff; /* Texte blanc */
+            margin: 0;
+            padding: 0;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
+ 
+        /* CONTAINER PRINCIPAL */
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 20px auto; /* Centre le contenu */
+            text-align: center;
+        }
+ 
+        /* TITRE PRINCIPAL */
+        h1 {
+            font-size: 28px;
+            color: #ffd700; /* Couleur dorée */
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
             margin-bottom: 20px;
         }
-        table, th, td {
-            border: 1px solid black;
+ 
+        /* SOUS-TITRES */
+        h2 {
+            font-size: 20px;
+            color: #fff;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            text-align: center;
         }
-        th, td {
+ 
+        /* TABLE DES PARTIES */
+        #liste-parties {
+            margin-top: 20px;
+            background-color: #3b3b3b; /* Fond sombre */
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Ombre */
+        }
+ 
+        #liste-parties div {
             padding: 10px;
-            text-align: left;
+            margin: 10px 0;
+            background-color: #444; /* Fond légèrement plus clair pour chaque partie */
+            border-radius: 5px;
+            text-align: left; /* Alignement à gauche */
+            color: #fff;
         }
-        .button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
+ 
+        /* FORMULAIRE DE CRÉATION DE PARTIE */
+        form {
+            margin-top: 20px;
+            background-color: #3b3b3b; /* Fond du formulaire */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Ombre */
+            text-align: left; /* Alignement à gauche */
+        }
+ 
+        form label {
+            display: block; /* Chaque label sur une ligne */
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #bbb; /* Texte gris clair */
+        }
+ 
+        form input[type="text"],
+        form input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff; /* Fond blanc */
+            color: #333; /* Texte noir */
+            margin-bottom: 15px;
+        }
+ 
+        form input[type="text"]:focus,
+        form input[type="number"]:focus {
+            outline: none;
+            border: 1px solid #ffd700; /* Bordure dorée au focus */
+        }
+ 
+        form button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50; /* Vert agréable */
             color: white;
             border: none;
+            border-radius: 5px;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
+ 
+        form button:hover {
+            background-color: #45a049; /* Vert légèrement plus foncé au survol */
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3); /* Ombre au survol */
+        }
+ 
+        /* BOUTONS POUR REJOINDRE UNE PARTIE */
+        .button {
+            padding: 10px 20px;
+            background-color: #4CAF50; /* Vert agréable */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+ 
         .button:hover {
             background-color: #45a049;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3); /* Ombre au survol */
         }
+ 
         .disabled {
-            background-color: #cccccc;
+            background-color: #cccccc; /* Gris pour les boutons désactivés */
             cursor: not-allowed;
         }
-        .container {
-            margin: 20px;
-        }
-        h2 {
-            margin-top: 30px;
-        }
-    </style>
+</style>
     
     <%
     // Récupère le pseudo depuis la session HTTP (stocké lors du login)
