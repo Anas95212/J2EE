@@ -17,9 +17,9 @@ public class MapController extends HttpServlet {
         // Créer une carte 20x20
         Carte carte = new Carte(20, 20);
         carte.initialiserCarte(); // Initialiser la configuration
-
+        String gameId = request.getParameter("gameId");
         // Stocker la carte en attribut de requête pour l'afficher
-        request.setAttribute("carteHTML", carte.toHTML());
+        request.setAttribute("carteHTML", carte.toHTML(gameId));
 
         // Rediriger vers une page JSP pour l'affichage
         request.getRequestDispatcher("/vue/game.jsp").forward(request, response);

@@ -202,7 +202,7 @@
                      alert("Erreur : " + data.error);
                      return;
                  }
-
+				 
                  // Sinon, c'est un format de message inconnu
                  console.warn("Message non géré :", data);
              };

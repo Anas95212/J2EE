@@ -30,7 +30,7 @@ public class Partie {
      * Cette information permet de gérer des actions réservées (ex: lancer la partie).
      */
     private String createur;
-
+    private int indexJoueurActuel = 0;
     /**
      * Constructeur par défaut (sans préciser le créateur).
      * @param nomPartie nom donné à la partie
@@ -53,7 +53,7 @@ public class Partie {
         this.maxJoueurs = maxJoueurs;
         this.joueurs = new ArrayList<>();
         this.enCours = false;
-        this.carte = new Carte(15, 15); 
+        this.carte = new Carte(12, 12); 
         this.carte.initialiserCarte();
         this.createur = createur; // On stocke le créateur
     }
@@ -71,6 +71,25 @@ public class Partie {
     // Getters / Setters
     // -------------------------
     
+    /**
+     * Retourne une liste contenant uniquement les noms (logins) des joueurs.
+     * @return Liste des noms des joueurs.
+     */
+    public List<String> getNomsJoueurs() {
+        List<String> noms = new ArrayList<>();
+        for (Joueur joueur : joueurs) { // joueurs est la liste des joueurs dans la partie
+            noms.add(joueur.getLogin());
+        }
+        return noms;
+    }
+    public int getIndexJoueurActuel() {
+        return indexJoueurActuel;
+    }
+
+    // AJOUT : setter (optionnel si nécessaire)
+    public void setIndexJoueurActuel(int index) {
+        this.indexJoueurActuel = index;
+    }
     /**
      * Retourne l'ID unique de la partie.
      * @return l'identifiant (ex: "GAME-12345")
@@ -170,7 +189,11 @@ public class Partie {
     // -------------------------
     // Méthodes de gestion
     // -------------------------
-
+    public void nextPlayerTurn() {
+        if (!joueurs.isEmpty()) {
+            indexJoueurActuel = (indexJoueurActuel + 1) % joueurs.size();
+        }
+    }
     /**
      * Tente d'ajouter un joueur dans la partie.
      * @param joueur joueur à ajouter

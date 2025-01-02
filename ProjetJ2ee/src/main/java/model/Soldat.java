@@ -31,7 +31,7 @@ public class Soldat {
      * Indique si le soldat est blessé (true si les points de vie sont inférieurs à 100).
      */
     private boolean blesse;
- 
+    private Joueur owner; 
     /**
      * Constructeur par défaut.
      * Initialise un soldat avec des coordonnées (0, 0), des points de défense et des points de vie par défaut.
@@ -42,6 +42,7 @@ public class Soldat {
         this.pointsDeDefense = 10; // Exemple de valeur par défaut
         this.pointsDeVie = 100; // Exemple de valeur par défaut
         this.blesse = false;
+        this.owner = null;
     }
  
     /**
@@ -53,16 +54,22 @@ public class Soldat {
      * @param pointsDeDefense Points de défense initiaux du soldat.
      * @param pointsDeVie Points de vie initiaux du soldat.
      */
-    public Soldat(int positionX, int positionY, int pointsDeDefense, int pointsDeVie) {
+    public Soldat(int positionX, int positionY, int pointsDeDefense, int pointsDeVie, Joueur owner) {
         this.positionX = positionX;
         this.positionY = positionY;
         this.pointsDeDefense = pointsDeDefense;
         this.pointsDeVie = pointsDeVie;
         this.blesse = pointsDeVie < 100;
+        this.owner = owner;
     }
  
     // Getters et Setters
- 
+    public Joueur getOwner() {
+        return owner;
+    }
+    public void setOwner(Joueur owner) {
+        this.owner = owner;
+    }
     public int getPositionX() {
         return positionX;
     }

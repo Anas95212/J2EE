@@ -24,7 +24,7 @@ public class Joueur {
  
     // Liste des villes appartenant au joueur.
     private List<Ville> villes;
- 
+    private String couleur;
     /**
      * Constructeur de la classe Joueur.
      * 
@@ -36,10 +36,17 @@ public class Joueur {
         this.pointsDeProduction = 0; // Initialisation des points de production à 0
         this.unites = new ArrayList<>();
         this.villes = new ArrayList<>();
+        this.couleur = null;
     }
  
     // Getters et Setters
- 
+    public String getCouleur() {
+        return couleur;
+    }
+
+    public void setCouleur(String couleur) {
+        this.couleur = couleur;
+    }
     /**
      * Obtient le login du joueur.
      * @return login du joueur.

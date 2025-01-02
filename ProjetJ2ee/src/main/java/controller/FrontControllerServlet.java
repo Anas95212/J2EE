@@ -32,27 +32,29 @@ public class FrontControllerServlet extends HttpServlet {
             action = ""; // Par défaut, aucune action
         }
 
-        // Redirection vers le contrôleur approprié en fonction de l'action
         switch (action) {
             case "login":
+            case "register":
+                // Gérer login / register via LoginController
                 new LoginController().handle(request, response);
                 break;
 
-            case "register":
-                new LoginController().handle(request, response); // Gérer l'inscription
-                break;
-
+            case "selectSoldier":
             case "move":
+            case "undo":
+            case "endTurn":
             case "attack":
+                // Redirection vers ActionsController pour toutes ces actions
                 new ActionsController().handle(request, response);
                 break;
 
             case "score":
+                // ScoreController
                 new ScoreController().handle(request, response);
                 break;
 
             default:
-                // Action par défaut ou page d'accueil
+                // Aucune action reconnue => renvoie vers home.jsp ou page d’accueil
                 RequestDispatcher rd = request.getRequestDispatcher("/home.jsp");
                 rd.forward(request, response);
                 break;

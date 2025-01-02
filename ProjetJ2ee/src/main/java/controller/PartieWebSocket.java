@@ -9,6 +9,8 @@ import jakarta.websocket.server.ServerEndpoint;
 import model.Partie;
 import model.Carte;
 import model.Joueur;
+import model.Soldat;
+import model.Tuile;
 
 /**
  * Gère la communication WebSocket sur l'URL "/ws/parties".
@@ -35,6 +37,10 @@ public class PartieWebSocket {
      * Liste globale des parties en cours (ou en attente).
      */
     private static final List<Partie> parties = new ArrayList<>();
+
+    public static List<Partie> getParties() {
+        return parties;
+    }
 
     /**
      * Méthode appelée lorsqu'un client ouvre la connexion WebSocket.
@@ -106,6 +112,14 @@ public class PartieWebSocket {
                     lancerPartie(data.get("gameId"), session);
                     break;
 
+                case "choisirCouleur":
+                    choisirCouleur(
+                        data.get("gameId"),
+                        data.get("couleur"),
+                        session
+                    );
+                    break;
+
                 default:
                     System.out.println("Action inconnue: " + action);
                     break;
@@ -136,7 +150,7 @@ public class PartieWebSocket {
             if (partie != null) {
                 // On retire le joueur (celui qui a ce pseudo)
                 partie.retirerJoueur(new Joueur(pseudo));
-                
+
                 // Si la partie est désormais vide, on l'enlève complètement
                 if (partie.getJoueurs().isEmpty()) {
                     parties.remove(partie);
@@ -160,6 +174,37 @@ public class PartieWebSocket {
     // ----------------------------------------------------------------------
     // Méthodes d'actions
     // ----------------------------------------------------------------------
+
+    /**
+     * Ajoute une couleur au joueur dans la partie, sans redirection
+     * (restent dans la salle d'attente).
+     */
+    private void choisirCouleur(String gameId, String couleur, Session session) {
+        Partie partie = trouverPartie(gameId);
+        if (partie == null) {
+            envoyerMessageErreur(session, "Partie introuvable pour choisirCouleur.");
+            return;
+        }
+        String pseudo = sessionPseudoMap.get(session);
+        if (pseudo == null) pseudo = "Joueur_" + session.getId();
+
+        // Vérif si déjà prise
+        for (Joueur j : partie.getJoueurs()) {
+            if (couleur.equalsIgnoreCase(j.getCouleur())) {
+                envoyerMessageErreur(session, "Couleur déjà prise.");
+                return;
+            }
+        }
+        // Assigner
+        for (Joueur j : partie.getJoueurs()) {
+            if (j.getLogin().equals(pseudo)) {
+                j.setCouleur(couleur);
+                break;
+            }
+        }
+        // Pas de redirect => On met juste à jour la liste
+        envoyerListeParties();
+    }
 
     /**
      * Crée une nouvelle partie et l'ajoute à la liste.
@@ -186,88 +231,176 @@ public class PartieWebSocket {
     }
 
     /**
-     * Fait rejoindre la partie indiquée par le paramètre gameId.
+     * Fait simplement rejoindre la partie indiquée par le paramètre gameId,
+     * sans rediriger vers /game. Les joueurs restent en salle d'attente.
      * @param gameId identifiant de la partie
      * @param session session du joueur qui veut rejoindre
      */
     private void rejoindrePartie(String gameId, Session session) {
+        // 1) Retrouver la partie
         Partie partie = trouverPartie(gameId);
         if (partie == null) {
             envoyerMessageErreur(session, "Partie introuvable.");
             return;
         }
 
-        // On récupère le pseudo
+        // 2) Récupérer le pseudo
         String pseudo = sessionPseudoMap.get(session);
-        if (pseudo == null) pseudo = "Joueur_" + session.getId();
+        if (pseudo == null || pseudo.trim().isEmpty()) {
+            pseudo = "Joueur_" + session.getId();
+        }
 
-        System.out.println("Tentative rejoindrePartie: " + gameId + " par " + pseudo);
-
+        // 3) Créer un nouveau Joueur et tenter de l’ajouter
         Joueur joueur = new Joueur(pseudo);
         boolean ok = partie.ajouterJoueur(joueur);
         if (!ok) {
-            envoyerMessageErreur(session, "La partie est pleine.");
+            // La partie est peut-être pleine
+            envoyerMessageErreur(session, "Impossible de rejoindre : la partie est pleine ou indisponible.");
             return;
         }
 
-        // On stocke dans 'clients' que ce session est dans ce gameId
+        // On associe ce WebSocket à ce gameId (dans clients)
         clients.put(session, gameId);
 
-        System.out.println("Rejoint OK : " + joueur.getLogin() + " -> " + partie.getGameId());
-        // On broadcast la nouvelle liste
+        // 4) Diffuser la liste des parties à tous
         envoyerListeParties();
-
-        // On envoie un message de redirection à ce joueur pour aller dans salleAttente.jsp
+        
+        // 5) Rediriger ce joueur vers salleAttente.jsp
         try {
-            String contextPath = "/ProjetJ2ee"; 
-            // on ajoute &user=...
-            String redirectMessage = "{\"redirect\":\""
-                + contextPath
-                + "/vue/salleAttente.jsp?gameId=" + gameId
-                + "&user=" + pseudo
-                + "\"}";
+            // Adapte ton contexte si besoin
+            String contextPath = "/ProjetJ2ee";
+            // On veut pointer vers /vue/salleAttente.jsp?gameId=...&user=...
+            String redirectUrl = contextPath 
+                + "/vue/salleAttente.jsp?gameId=" + gameId 
+                + "&user=" + pseudo;
 
-            session.getBasicRemote().sendText(redirectMessage);
+            // On fabrique un JSON { "redirect" : "..." }
+            String redirectJson = "{\"redirect\":\"" + redirectUrl + "\"}";
+
+            // On envoie ce message au SEUL joueur en question
+            session.getBasicRemote().sendText(redirectJson);
+
         } catch (Exception e) {
-            System.err.println("Erreur envoi redirect : " + e.getMessage());
+            System.err.println("Erreur lors de la redirection pour rejoindrePartie : " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-
     /**
      * Lance la partie indiquée par gameId (réservée au créateur).
+     * => Redirige tous les joueurs vers /game?gameId=...
      * @param gameId identifiant de la partie
      * @param session session du joueur appelant la commande
      */
     private void lancerPartie(String gameId, Session session) {
+        // 1) Retrouver la partie
         Partie partie = trouverPartie(gameId);
         if (partie == null) {
             envoyerMessageErreur(session, "Partie introuvable.");
             return;
         }
 
-        // Vérifie si c'est bien le créateur
-        String loginCreateur = partie.getCreateur();
-        String monPseudo = sessionPseudoMap.get(session);
+        // 2) Vérifier si c’est le créateur (optionnel)
+        String pseudoCreateur = partie.getCreateur();
+        String monPseudo = sessionPseudoMap.get(session); 
         if (monPseudo == null) monPseudo = "Joueur_" + session.getId();
 
-        if (!monPseudo.equals(loginCreateur)) {
+        if (!monPseudo.equals(pseudoCreateur)) {
             envoyerMessageErreur(session, "Vous n'êtes pas le créateur de cette partie.");
             return;
         }
 
-        // OK, on lance la partie
+        // 3) Marquer la partie comme "enCours"
         partie.setEnCours(true);
-        System.out.println("Partie " + partie.getGameId() + " lancée par " + monPseudo);
 
-        // On peut initialiser la carte ici (exemple)
-        partie.setCarte(new Carte(15, 15));
-        partie.getCarte().initialiserCarte();
+        // 4) Assigner des couleurs aléatoires aux joueurs qui n’en ont pas
+        // Ex : Palette de 6 couleurs
+        List<String> palette = new ArrayList<>(List.of(
+            "#0000FF", "#FF0000", "#00FF00", "#FFA500", "#FFFF00", "#800080"
+        ));
+        // Retirer celles déjà prises
+        for (Joueur j : partie.getJoueurs()) {
+            if (j.getCouleur() != null && !j.getCouleur().isEmpty()) {
+                palette.remove(j.getCouleur());
+            }
+        }
 
-        // On informe tout le monde que la partie est lancée
+        Random rand = new Random();
+        for (Joueur j : partie.getJoueurs()) {
+            if (j.getCouleur() == null || j.getCouleur().isEmpty()) {
+                if (!palette.isEmpty()) {
+                    // On assigne une couleur aléatoire
+                    int idx = rand.nextInt(palette.size());
+                    j.setCouleur(palette.remove(idx));
+                } else {
+                    // Au cas où on n’a plus de couleur dispo
+                    j.setCouleur("#AAAAAA");
+                }
+            }
+        }
+
+        // 5) Placer 1 soldat par joueur
+        Carte c = partie.getCarte();
+        for (Joueur j : partie.getJoueurs()) {
+            // Créer un soldat (en supposant Soldat(...) a un constructeur
+            // qui prend le Joueur en param, ou on le setOwner(j).
+            // Ici on utilise un constructeur custom:
+            Soldat s = new Soldat(0, 0, 10, 100, j);
+            // Chercher une tuile libre pour le soldat
+            int x, y;
+            do {
+                x = rand.nextInt(c.getLignes());
+                y = rand.nextInt(c.getColonnes());
+            } while (!tuileValidePourSoldat(c.getTuile(x, y)));
+
+            // Positionner le soldat
+            s.setPositionX(x);
+            s.setPositionY(y);
+            // L'ajouter au joueur
+            j.ajouterUnite(s);
+
+            // Poser le soldat sur la tuile
+            Tuile t = c.getTuile(x, y);
+            t.setSoldatPresent(s);
+        }
+
+        // 6) Informer tout le monde que la partie est lancée (mise à jour de la liste)
         envoyerListeParties();
+
+        // 7) Envoyer un message de redirection à *tous les joueurs* de ce gameId
+        // => ainsi, chacun quitte salleAttente et arrive sur /game?gameId=...
+        try {
+            String contextPath = "/ProjetJ2ee"; // ou ton contexte
+            String redirectUrl = contextPath + "/game?gameId=" + gameId;
+            String redirectMessage = "{\"redirect\":\"" + redirectUrl + "\"}";
+
+            // On envoie ce redirectMessage à TOUTES les sessions de *cette* partie
+            for (Session s : clients.keySet()) {
+                if (gameId.equals(clients.get(s))) {
+                    s.getBasicRemote().sendText(redirectMessage);
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Erreur lors de l'envoi du message de redirection : " + e.getMessage());
+            e.printStackTrace();
+        }
     }
+
+    /**
+     * Méthode utilitaire pour vérifier qu'une tuile est valide 
+     * pour placer un soldat initial (pas montagne, pas ville, pas déjà un soldat).
+     */
+    private boolean tuileValidePourSoldat(Tuile t) {
+        if (t == null) return false;
+        if (t.getSoldatPresent() != null) return false;
+        if (t.getBaseType() == Tuile.TypeTuile.MONTAGNE) return false;
+        if (t.getBaseType() == Tuile.TypeTuile.VILLE) return false;
+        // On autorise FORET ou VIDE
+        return true;
+    }
+
+
 
     // ----------------------------------------------------------------------
     // Méthodes utilitaires
@@ -321,7 +454,7 @@ public class PartieWebSocket {
      * Génère une chaîne JSON décrivant toutes les parties,
      * ex: 
      * [
-     *   {"gameId":"GAME-1234","nom":"Test","maxJoueurs":3,"createur":"admin","enCours":false,"joueurs":["admin"]},
+     *   {"gameId":"GAME-1234","nom":"Test","maxJoueurs":3,"createur":"admin","enCours":false,"joueurs":[{"login":"admin","couleur":"#FF0000"}]},
      *   ...
      * ]
      * @return une chaîne JSON
@@ -337,18 +470,17 @@ public class PartieWebSocket {
               .append("\"createur\":\"").append(p.getCreateur()).append("\",")
               .append("\"enCours\":").append(p.isEnCours()).append(",")
               .append("\"joueurs\":[");
-            
             List<Joueur> listeJoueurs = p.getJoueurs();
             for (int j = 0; j < listeJoueurs.size(); j++) {
-                sb.append("\"").append(listeJoueurs.get(j).getLogin()).append("\"");
-                if (j < listeJoueurs.size() - 1) {
-                    sb.append(",");
-                }
+                Joueur jj = listeJoueurs.get(j);
+                sb.append("{");
+                sb.append("\"login\":\"").append(jj.getLogin()).append("\",");
+                sb.append("\"couleur\":\"").append(jj.getCouleur() == null ? "" : jj.getCouleur()).append("\"");
+                sb.append("}");
+                if (j < listeJoueurs.size() - 1) sb.append(",");
             }
             sb.append("]}");
-            if (i < parties.size() - 1) {
-                sb.append(",");
-            }
+            if (i < parties.size() - 1) sb.append(",");
         }
         sb.append("]");
         return sb.toString();
@@ -395,4 +527,17 @@ public class PartieWebSocket {
         }
         return null;
     }
+    public static void broadcastGameUpdate(String gameId) {
+        String msg = "{\"reload\":\"true\",\"gameId\":\"" + gameId + "\"}";
+        for (Session s : clients.keySet()) {
+            if (gameId.equals(clients.get(s))) {
+                try {
+                    s.getBasicRemote().sendText(msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }
+

@@ -46,7 +46,21 @@ public class Carte {
             }
         }
     }
-
+    public int getLignes() {
+        return lignes;
+    }
+ 
+    public void setLignes(int lignes) {
+        this.lignes = lignes;
+    }
+ 
+    public int getColonnes() {
+        return colonnes;
+    }
+ 
+    public void setColonnes(int colonnes) {
+        this.colonnes = colonnes;
+    }
     /**
      * Obtient une tuile spécifique à partir de ses coordonnées.
      * 
@@ -72,7 +86,7 @@ public class Carte {
     public void mettreAJourTuile(int x, int y, TypeTuile type, boolean estVide) {
         Tuile tuile = getTuile(x, y);
         if (tuile != null) {
-            tuile.setType(type);
+            tuile.setBaseType(type);
             tuile.setEstVide(estVide);
         }
     }
@@ -86,7 +100,7 @@ public class Carte {
     public List<Tuile> getTuilesControleesPar(Joueur joueur) {
         List<Tuile> tuilesControlees = new ArrayList<>();
         for (Tuile tuile : tuiles) {
-            if (tuile.getType() == TypeTuile.VILLE && !tuile.isEstVide()) {
+            if (tuile.getBaseType() == TypeTuile.VILLE && !tuile.isEstVide()) {
                 // Logique d'attribution au joueur (si nécessaire, adapter cette partie)
                 tuilesControlees.add(tuile);
             }
@@ -99,39 +113,73 @@ public class Carte {
      * 
      * @return Une chaîne de caractères contenant la représentation HTML de la carte.
      */
-    public String toHTML() {
+    public String toHTML(String gameId) {
         StringBuilder html = new StringBuilder();
         html.append("<table class='game-grid'>");
+
         for (int x = 0; x < lignes; x++) {
             html.append("<tr>");
             for (int y = 0; y < colonnes; y++) {
                 Tuile tuile = getTuile(x, y);
-                html.append("<td class='tile ").append(tuile.getType().toString().toLowerCase()).append("'>");
-                // Ajouter une image selon le type de tuile
-                switch (tuile.getType()) {
+
+                // Récupère la baseType
+                TypeTuile bt = tuile.getBaseType();
+
+                // Commencer la <td> 
+                // On va gérer un style inline, on peut faire mieux en CSS
+                html.append("<td style='position:relative; width:50px; height:50px; ");
+
+                // S’il y a un soldat, on met un fond coloré
+                if (tuile.getSoldatPresent() != null) {
+                    Joueur owner = tuile.getSoldatPresent().getOwner();
+                    if (owner != null && owner.getCouleur() != null) {
+                        html.append("background-color:").append(owner.getCouleur()).append("; ");
+                    }
+                }
+                html.append("'>"); // fin du style='...'
+
+                // 1) Afficher l’image correspondant à la baseType
+                switch (bt) {
                     case VILLE:
-                        html.append("<img src='images/castle.png' alt='Ville'/>");
+                        html.append("<img src='images/castle.png' alt='Ville' style='width:100%;height:100%;'/>");
                         break;
                     case FORET:
-                        html.append("<img src='images/forest.png' alt='Forêt'/>");
+                        html.append("<img src='images/forest.png' alt='Forêt' style='width:100%;height:100%;'/>");
                         break;
                     case MONTAGNE:
-                        html.append("<img src='images/mountain.png' alt='Montagne'/>");
-                        break;
-                    case SOLDAT:
-                        html.append("<img src='images/knight.png' alt='Soldat'/>");
+                        html.append("<img src='images/mountain.png' alt='Montagne' style='width:100%;height:100%;'/>");
                         break;
                     case VIDE:
-                        html.append(""); // Rien pour les tuiles vides
+                        // rien ou image vide
                         break;
                 }
+
+                // 2) Si un soldat est présent, afficher le soldat 
+                //    ET le rendre cliquable => ex: <a href=...>
+                Soldat soldat = tuile.getSoldatPresent();
+                if (soldat != null) {
+                    // Lien ou form pour le "selectSoldier"
+                    // Ex: soldierId = s.getId()  => si tu gères un ID unique
+                    // ou s.getPositionX()+"_"+s.getPositionY()
+                    String soldierId = soldat.getPositionX() + "_" + soldat.getPositionY();
+
+                    html.append("<a href='controller?action=selectSoldier")
+	                    .append("&gameId=").append(gameId) // <--- on ajoute le gameId
+	                    .append("&soldierId=").append(soldierId)
+	                    .append("'>")
+	                    .append("<img src='images/knight.png' .../>")
+	                    .append("</a>");
+                }
+
                 html.append("</td>");
             }
             html.append("</tr>");
         }
+
         html.append("</table>");
         return html.toString();
     }
+
     
     
     
@@ -162,7 +210,7 @@ public class Carte {
         int nbVilles = 5;
         int nbForets = 6;
         int nbMontagnes = 10;
-        int nbSoldats = 2;
+        //int nbSoldats = 2;
 
         // Placer les villes
         for (int i = 0; i < nbVilles; i++) {
@@ -183,10 +231,10 @@ public class Carte {
         }
 
         // Placer les soldats
-        for (int i = 0; i < nbSoldats; i++) {
+        /*for (int i = 0; i < nbSoldats; i++) {
             int[] pos = positions.remove(0); // Récupérer une position aléatoire
             mettreAJourTuile(pos[0], pos[1], TypeTuile.SOLDAT, false);
-        }
+        }*/
 
         // Le reste des cases sera vide
         for (int[] pos : positions) {

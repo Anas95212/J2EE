@@ -29,13 +29,13 @@ public class Tuile {
     /**
      * Type de la tuile (VILLE, FORET, MONTAGNE, VIDE).
      */
-    private TypeTuile type;
+    private TypeTuile baseType;
 
     /**
      * Indicateur si la tuile est vide ou occupée.
      */
     private boolean estVide;
-
+    private Soldat soldatPresent;
     /**
      * Constructeur par défaut.
      * Initialise une tuile vide avec des coordonnées (0, 0).
@@ -43,8 +43,9 @@ public class Tuile {
     public Tuile() {
         this.x = 0;
         this.y = 0;
-        this.type = TypeTuile.VIDE;
+        this.baseType = TypeTuile.VIDE;
         this.estVide = true;
+        this.soldatPresent = null;
     }
 
     /**
@@ -58,10 +59,29 @@ public class Tuile {
     public Tuile(int x, int y, TypeTuile type, boolean estVide) {
         this.x = x;
         this.y = y;
-        this.type = type;
+        this.baseType = type;
         this.estVide = estVide;
+        this.soldatPresent = null;
+    }
+    public Soldat getSoldatPresent() {
+        return soldatPresent;
     }
 
+    public void setSoldatPresent(Soldat soldatPresent) {
+        this.soldatPresent = soldatPresent;
+        // Si un soldat est présent => pas vide
+        // (ou, si on enlève le soldat => redevient estVide = false si c’est FORET ? A adapter)
+        if (soldatPresent != null) {
+            this.estVide = false;
+        } else {
+            // On ne met pas forcément estVide=true, car la baseType peut être FORET
+            // "Vide" veut dire "pas de soldat ni de ville ni autre occupant"
+            // Donc à toi d’adapter selon la logique
+            if (baseType == TypeTuile.VIDE) {
+                this.estVide = true;
+            }
+        }
+    }
     /**
      * Obtient la coordonnée X de la tuile.
      * 
@@ -103,8 +123,8 @@ public class Tuile {
      * 
      * @return Le type de la tuile (VILLE, FORET, MONTAGNE, VIDE).
      */
-    public TypeTuile getType() {
-        return type;
+    public TypeTuile getBaseType() {
+        return baseType;
     }
 
     /**
@@ -112,8 +132,8 @@ public class Tuile {
      * 
      * @param type Le nouveau type de la tuile.
      */
-    public void setType(TypeTuile type) {
-        this.type = type;
+    public void setBaseType(TypeTuile type) {
+        this.baseType = type;
     }
 
     /**
@@ -154,8 +174,9 @@ public class Tuile {
         return "Tuile{" +
                 "x=" + x +
                 ", y=" + y +
-                ", type=" + type +
+                ", baseType=" + baseType +
                 ", estVide=" + estVide +
+                ", soldatPresent=" + (soldatPresent != null) +
                 '}';
     }
 }
