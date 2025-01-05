@@ -40,6 +40,8 @@ public class FrontControllerServlet extends HttpServlet {
                 break;
 
             case "selectSoldier":
+            case "addLifeToSoldier":
+            case "DoNothing":
             case "move":
             case "undo":
             case "endTurn":

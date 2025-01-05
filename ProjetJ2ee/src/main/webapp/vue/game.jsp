@@ -48,172 +48,186 @@
 <head>
     <title>Jeu 4X - Carte du Jeu</title>
     <style>
-        /* Styles identiques à votre code */
-        .container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; margin: 20px; }
-        .actions { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-        .game-grid { border-collapse: collapse; margin: 20px auto; background-color: #f0f0f0; }
-        .game-grid td { width: 50px; height: 50px; border: 1px solid #ccc; text-align: center; }
-        .game-grid td img { width: 100%; height: 100%; object-fit: cover; }
-        body { font-family: 'Arial', sans-serif; background-color: #2d2d2d; color: #fff; margin: 0; padding: 0; }
-        h1 { text-align: center; margin-top: 20px; font-size: 28px; color: #ffd700; }
-        form button { background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-        form button:disabled { background-color: #888; cursor: not-allowed; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #2d2d2d;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 28px;
+            color: #ffd700;
+        }
+        .container {
+            display: flex;
+            justify-content: flex-start; /* Alignement de la carte et des boutons */
+            align-items: flex-start; /* Aligne les éléments en haut */
+            gap: 20px;
+            margin: 20px;
+            width: 90%;
+        }
+        .game-grid {
+            flex: 0 1 auto;
+            margin-right: auto; /* Positionne la carte à gauche */
+            background-color: #f0f0f0;
+            border-collapse: collapse;
+        }
+        .game-grid td {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        .game-grid td img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .actions {
+            flex: 0 1 auto;
+            margin-left: auto; /* Positionne les boutons à droite */
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .actions button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .actions button:disabled {
+            background-color: #888;
+            cursor: not-allowed;
+        }
+        hr {
+            width: 100%; /* Le trait prend toute la largeur */
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
     </style>
     <script>
         let gameSocket;
 
-        // Fonction pour connecter le WebSocket
         function connectGameWebSocket() {
             const pseudo = "<%= pseudo %>";
             const wsUrl = "ws://" + location.host + "<%= request.getContextPath() %>/ws/parties?user=" + encodeURIComponent(pseudo);
             console.log("Game.jsp: Tentative de connexion WebSocket ->", wsUrl);
 
-            // Création du WebSocket
             gameSocket = new WebSocket(wsUrl);
-
-            // Événement : Connexion ouverte
-            gameSocket.onopen = function () {
-                console.log("Game.jsp: WebSocket connecté avec succès.");
-            };
-
-            // Événement : Connexion fermée
-            gameSocket.onclose = function () {
-                console.warn("Game.jsp: WebSocket déconnecté.");
-            };
-
-            // Événement : Erreur détectée
-            gameSocket.onerror = function (event) {
-                console.error("Game.jsp: Une erreur s'est produite avec le WebSocket :", event);
-            };
-
-            // Événement : Message reçu
+            gameSocket.onopen = function () { console.log("Game.jsp: WebSocket connecté avec succès."); };
+            gameSocket.onclose = function () { console.warn("Game.jsp: WebSocket déconnecté."); };
+            gameSocket.onerror = function (event) { console.error("Game.jsp: Une erreur WebSocket :", event); };
             gameSocket.onmessage = function (event) {
-                console.log("Game.jsp: Message reçu via WebSocket.");
                 try {
                     const data = JSON.parse(event.data);
-                    console.log("Game.jsp: Données reçues JSON ->", data);
-
-                    // Vérifie le type de message reçu
                     if (data.type === "update") {
-                        console.log("Game.jsp: Mise à jour de la carte détectée.");
                         updateGameUI(data);
-
                     } else if (data.type === "refresh") {
-                        console.log("Game.jsp: Rechargement demandé via WebSocket.");
-                        location.reload(); // Recharge la page entière
+                        location.reload();
                     } else if (data.type === "combatStart") {
-                        console.log("Début du combat détecté. Redirection...");
-                        window.location.href = data.redirect; // Redirection vers combat.jsp
+                        window.location.href = data.redirect;
                     } else if (data.type === "error") {
-                        console.error("Game.jsp: Message d'erreur reçu ->", data.message);
                         alert(`Erreur : ${data.message}`);
-                    } else {
-                        console.log("Game.jsp: Type de message WebSocket non reconnu ->", data.type);
                     }
                 } catch (e) {
-                    console.error("Game.jsp: Erreur lors du traitement des données WebSocket :", e);
+                    console.error("Erreur WebSocket :", e);
                 }
             };
         }
 
-        // Fonction pour récupérer l'état via Fetch API
         function fetchGameState() {
             fetch(`/ProjetJ2ee/controller?action=updateState&gameId=<%= gameId %>`)
                 .then(response => {
                     if (!response.ok) throw new Error("Erreur lors de la récupération de l'état du jeu.");
                     return response.json();
                 })
-                .then(data => {
-                    updateGameUI(data);
-                })
+                .then(data => { updateGameUI(data); })
                 .catch(error => console.error("Erreur Fetch:", error));
         }
 
-        // Fonction commune pour mettre à jour l'UI
         function updateGameUI(data) {
-    // Met à jour la carte
-    const gameGrid = document.querySelector(".game-grid");
-    if (gameGrid && data.htmlCarte) {
-        // Remplace seulement si le contenu est différent
-        if (gameGrid.innerHTML !== data.htmlCarte) {
-            gameGrid.innerHTML = data.htmlCarte;
+            const gameGrid = document.querySelector(".game-grid");
+            if (gameGrid && data.htmlCarte && gameGrid.innerHTML !== data.htmlCarte) {
+                gameGrid.innerHTML = data.htmlCarte;
+            }
+            const currentPlayerElement = document.querySelector("#current-player");
+            if (currentPlayerElement && data.currentPlayer) {
+                currentPlayerElement.textContent = data.currentPlayer;
+                const isMyTurn = data.currentPlayer === "<%= pseudo %>";
+                document.querySelectorAll(".actions button").forEach(button => {
+                    button.disabled = !isMyTurn;
+                });
+            }
         }
-    }
 
-    // Met à jour le joueur actuel
-    const currentPlayerElement = document.querySelector("#current-player");
-    if (currentPlayerElement && data.currentPlayer) {
-        currentPlayerElement.textContent = data.currentPlayer;
-
-        // Désactiver les boutons si ce n'est pas le tour de l'utilisateur
-        const isMyTurn = data.currentPlayer === "<%= pseudo %>";
-        document.querySelectorAll("form button").forEach(button => {
-            button.disabled = !isMyTurn;
-        });
-    }
-}
-
-
-        // Initialise la connexion WebSocket et démarre les mises à jour régulières
         function startGame() {
-            connectGameWebSocket(); // Connexion WebSocket
-            setInterval(fetchGameState, 1000); // Mise à jour via Fetch toutes les secondes
+            connectGameWebSocket();
+            setInterval(fetchGameState, 1000);
         }
 
-        // Initialisation
         window.onload = startGame;
-        
-        
-        
-
     </script>
 </head>
 <body>
     <h1>Carte du jeu</h1>
     <p>Tour en cours : <span id="current-player" style="color:<%= current.getCouleur() %>"><%= current.getLogin() %></span></p>
-
     <% if (!isMyTurn) { %>
         <p style="color:red;">Ce n'est pas votre tour, vous ne pouvez pas jouer.</p>
     <% } else { %>
         <p style="color:lightgreen;">C'est à vous de jouer !</p>
     <% } %>
-
-    <!-- Boutons de déplacement -->
-    <form action="<%= request.getContextPath() %>/controller" method="post">
-        <input type="hidden" name="action" value="move"/>
-        <input type="hidden" name="gameId" value="<%= gameId %>"/>
-        <button type="submit" name="direction" value="north" <%= !isMyTurn ? "disabled" : "" %>>Move North</button>
-        <button type="submit" name="direction" value="south" <%= !isMyTurn ? "disabled" : "" %>>Move South</button>
-        <button type="submit" name="direction" value="east" <%= !isMyTurn ? "disabled" : "" %>>Move East</button>
-        <button type="submit" name="direction" value="west" <%= !isMyTurn ? "disabled" : "" %>>Move West</button>
-    </form>
-
-    <!-- Bouton Undo -->
-    <form action="<%= request.getContextPath() %>/controller" method="post">
-        <input type="hidden" name="action" value="undo"/>
-        <input type="hidden" name="gameId" value="<%= gameId %>"/>
-        <button type="submit" <%= !isMyTurn ? "disabled" : "" %>>Annuler</button>
-    </form>
-
-    <!-- Bouton Fin de tour -->
-    <form action="<%= request.getContextPath() %>/controller" method="post">
-        <input type="hidden" name="action" value="endTurn"/>
-        <input type="hidden" name="gameId" value="<%= gameId %>"/>
-        <button type="submit" <%= !isMyTurn ? "disabled" : "" %>>Fin de tour</button>
-    </form>
-
     <hr/>
 
-    <!-- Carte affichée dynamiquement -->
-    <table class="game-grid">
-    <% 
-        String carteHTML = partie.getCarte().toHTML(gameId)
-            .replace("src='/vue/images/", "src='" + request.getContextPath() + "/vue/images/")
-            .replace("href='controller?action=selectSoldier", "href='" + request.getContextPath() + "/controller?action=selectSoldier")
-            .replace("selectSoldier&soldierId=", "selectSoldier&gameId=" + gameId + "&soldierId=");
-        out.print(carteHTML);
-    %>
-</table>
+    <div class="container">
+        <table class="game-grid">
+            <% 
+                String carteHTML = partie.getCarte().toHTML(gameId)
+                    .replace("src='/vue/images/", "src='" + request.getContextPath() + "/vue/images/")
+                    .replace("href='controller?action=selectSoldier", "href='" + request.getContextPath() + "/controller?action=selectSoldier")
+                    .replace("selectSoldier&soldierId=", "selectSoldier&gameId=" + gameId + "&soldierId=");
+                out.print(carteHTML);
+            %>
+        </table>
 
+        <div class="actions">
+            <form action="<%= request.getContextPath() %>/controller" method="post">
+                <input type="hidden" name="action" value="move"/>
+                <input type="hidden" name="gameId" value="<%= gameId %>"/>
+                <button type="submit" name="direction" value="north" <%= !isMyTurn ? "disabled" : "" %>>Move North</button>
+                <button type="submit" name="direction" value="south" <%= !isMyTurn ? "disabled" : "" %>>Move South</button>
+                <button type="submit" name="direction" value="east" <%= !isMyTurn ? "disabled" : "" %>>Move East</button>
+                <button type="submit" name="direction" value="west" <%= !isMyTurn ? "disabled" : "" %>>Move West</button>
+            </form>
+            <form action="<%= request.getContextPath() %>/controller" method="post">
+                <input type="hidden" name="action" value="addLifeToSoldier"/>
+                <input type="hidden" name="gameId" value="<%= gameId %>"/>
+                <button type="submit" <%= !isMyTurn ? "disabled" : "" %>>Ajouter de la Vie</button>
+            </form>
+            <form action="<%= request.getContextPath() %>/controller" method="post">
+                <input type="hidden" name="action" value="undo"/>
+                <input type="hidden" name="gameId" value="<%= gameId %>"/>
+                <button type="submit" <%= !isMyTurn ? "disabled" : "" %>>Annuler</button>
+            </form>
+            <form action="<%= request.getContextPath() %>/controller" method="post">
+                <input type="hidden" name="action" value="DoNothing"/>
+                <input type="hidden" name="gameId" value="<%= gameId %>"/>
+                <button type="submit" <%= !isMyTurn ? "disabled" : "" %>>Ne rien faire</button>
+            </form>
+            <form action="<%= request.getContextPath() %>/controller" method="post">
+                <input type="hidden" name="action" value="endTurn"/>
+                <input type="hidden" name="gameId" value="<%= gameId %>"/>
+                <button type="submit" <%= !isMyTurn ? "disabled" : "" %>>Fin de tour</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

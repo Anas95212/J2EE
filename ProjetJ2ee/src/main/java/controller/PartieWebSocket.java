@@ -551,23 +551,17 @@ public class PartieWebSocket {
             System.err.println("Erreur : Partie introuvable pour gameId=" + gameId);
             return;
         }
-
-        // Ne diffuse qu'aux joueurs dont c'est le tour
-        String currentPlayer = partie.getJoueurs().get(partie.getIndexJoueurActuel()).getLogin();
-
+ 
         String jsonMessage = convertirCarteAvecJoueurEnJSON(partie);
         System.out.println("[WebSocket] Diffusion de l'état de la partie : " + jsonMessage);
-
+ 
         for (Session session : clients.keySet()) {
-            String pseudo = sessionPseudoMap.get(session);
-
-            if (gameId.equals(clients.get(session))) {
+            String clientGameId = clients.get(session);
+            if (gameId.equals(clientGameId)) {
                 try {
-                    // Ne diffuse qu'au joueur actif
-                    if (pseudo.equals(currentPlayer)) {
-                        session.getBasicRemote().sendText(jsonMessage);
-                        System.out.println("[WebSocket] Message envoyé au joueur actif : " + pseudo);
-                    }
+                    // Diffuse à tous les joueurs connectés à la partie
+                    session.getBasicRemote().sendText(jsonMessage);
+                    System.out.println("[WebSocket] Message envoyé à la session : " + session.getId());
                 } catch (Exception e) {
                     System.err.println("[WebSocket] Erreur lors de l'envoi au client : " + session.getId());
                     e.printStackTrace();

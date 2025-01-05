@@ -64,6 +64,14 @@ public class ActionsController {
             case "updateState":
                 updateState(request, response);
                 break;
+            
+            case "addLifeToSoldier":
+                addLifeToSoldier(request, response);
+                break;
+            
+            case "DoNothing":
+            	endTurn(request, response);
+                break;
 
             default:
                 // Action non reconnue => retour sur game.jsp
@@ -360,7 +368,7 @@ public class ActionsController {
 
         request.setAttribute("endTurnMessage", "Fin de tour, au suivant !");
 
-        //PartieWebSocket.broadcastRefresh(gameId);
+        PartieWebSocket.broadcastRefresh(gameId);
         redirectToGameJsp(request, response);
     }
 
@@ -469,6 +477,95 @@ response.sendRedirect(redirectUrl);
             RequestDispatcher rd = request.getRequestDispatcher("/vue/game.jsp?gameId=" + gameId);
             rd.forward(request, response);
         }
+    }
+    
+    
+    private void addLifeToSoldier(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        // 1) Récupérer gameId et vérifier sa validité
+        String gameId = request.getParameter("gameId");
+        if (gameId == null || gameId.isEmpty()) {
+            request.setAttribute("error", "Pas de gameId fourni !");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // 2) Récupérer la partie
+        Partie partie = findPartie(gameId);
+        if (partie == null) {
+            request.setAttribute("error", "Partie introuvable !");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // 3) Récupérer le pseudo du joueur connecté
+        String pseudo = (String) request.getSession().getAttribute("loggedUser");
+        if (pseudo == null) {
+            request.setAttribute("error", "Vous n'êtes pas connecté.");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // 4) Vérifier que c'est le tour du joueur
+        if (!isPlayerTurn(partie, pseudo)) {
+            request.setAttribute("error", "Ce n'est pas votre tour !");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // 5) Récupérer le soldat sélectionné
+        String soldierId = (String) request.getSession().getAttribute("selectedSoldierId");
+        if (soldierId == null) {
+            request.setAttribute("error", "Aucun soldat sélectionné.");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // 6) Identifier la position du soldat
+        String[] coords = soldierId.split("_");
+        if (coords.length != 2) {
+            request.setAttribute("error", "Identifiant de soldat invalide.");
+            redirectToGameJsp(request, response);
+            return;
+        }
+        int x = Integer.parseInt(coords[0]);
+        int y = Integer.parseInt(coords[1]);
+
+        // 7) Récupérer la tuile du soldat
+        Tuile tile = partie.getCarte().getTuile(x, y);
+        if (tile == null || tile.getSoldatPresent() == null) {
+            request.setAttribute("error", "Soldat introuvable à cette position.");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // 8) Récupérer le soldat
+        Soldat soldat = tile.getSoldatPresent();
+        if (!soldat.getOwner().getLogin().equals(pseudo)) {
+            request.setAttribute("error", "Ce soldat ne vous appartient pas.");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // 9) Ajouter de la vie au soldat
+        int currentLife = soldat.getPointsDeVie();
+        int maxLife = 100;
+        if (currentLife < maxLife) {
+            // Ajout de vie, vérifier la capacité maximale
+            int addedLife = Math.min(10, maxLife - currentLife); // Exemple : ajout de 10 points de vie
+            soldat.setPointsDeVie(currentLife + addedLife);
+
+            // Confirmer l'ajout de vie
+            request.setAttribute("lifeMessage", "Vous avez ajouté " + addedLife + " points de vie à votre soldat.");
+
+        } else {
+            request.setAttribute("errorlife", "Ce soldat a déjà toute sa vie, veuillez effectuer une autre action !");
+        }
+
+        // 10) Rediriger vers la page de jeu avec les mises à jour
+        PartieWebSocket.broadcastGameUpdate(gameId);
+        redirectToGameJsp(request, response);
     }
 
 }
