@@ -125,8 +125,7 @@ public class Carte {
                 // Récupère la baseType
                 TypeTuile bt = tuile.getBaseType();
 
-                // Commencer la <td> 
-                // On va gérer un style inline, on peut faire mieux en CSS
+                // Commencer la <td>
                 html.append("<td style='position:relative; width:50px; height:50px; ");
 
                 // S’il y a un soldat, on met un fond coloré
@@ -141,34 +140,30 @@ public class Carte {
                 // 1) Afficher l’image correspondant à la baseType
                 switch (bt) {
                     case VILLE:
-                        html.append("<img src='images/castle.png' alt='Ville' style='width:100%;height:100%;'/>");
+                        html.append("<img src='/ProjetJ2ee/vue/images/castle.png' alt='Ville' style='width:100%;height:100%;'/>");
                         break;
                     case FORET:
-                        html.append("<img src='images/forest.png' alt='Forêt' style='width:100%;height:100%;'/>");
+                        html.append("<img src='/ProjetJ2ee/vue/images/forest.png' alt='Forêt' style='width:100%;height:100%;'/>");
                         break;
                     case MONTAGNE:
-                        html.append("<img src='images/mountain.png' alt='Montagne' style='width:100%;height:100%;'/>");
+                        html.append("<img src='/ProjetJ2ee/vue/images/mountain.png' alt='Montagne' style='width:100%;height:100%;'/>");
                         break;
                     case VIDE:
                         // rien ou image vide
                         break;
                 }
 
-                // 2) Si un soldat est présent, afficher le soldat 
-                //    ET le rendre cliquable => ex: <a href=...>
+                // 2) Si un soldat est présent, afficher le soldat avec le gameId
                 Soldat soldat = tuile.getSoldatPresent();
                 if (soldat != null) {
-                    // Lien ou form pour le "selectSoldier"
-                    // Ex: soldierId = s.getId()  => si tu gères un ID unique
-                    // ou s.getPositionX()+"_"+s.getPositionY()
                     String soldierId = soldat.getPositionX() + "_" + soldat.getPositionY();
 
-                    html.append("<a href='controller?action=selectSoldier")
-	                    .append("&gameId=").append(gameId) // <--- on ajoute le gameId
-	                    .append("&soldierId=").append(soldierId)
-	                    .append("'>")
-	                    .append("<img src='images/knight.png' .../>")
-	                    .append("</a>");
+                    html.append("<a href='/ProjetJ2ee/controller?action=selectSoldier")
+                        .append("&gameId=").append(gameId)
+                        .append("&soldierId=").append(soldierId)
+                        .append("'>")
+                        .append("<img src='/ProjetJ2ee/vue/images/knight.png' alt='Soldat' style='width:100%;height:100%;'/>")
+                        .append("</a>");
                 }
 
                 html.append("</td>");
@@ -179,6 +174,8 @@ public class Carte {
         html.append("</table>");
         return html.toString();
     }
+
+
 
     
     
@@ -262,4 +259,24 @@ public class Carte {
         }
         return sb.toString();
     }
+    
+    public String toJSON() {
+        StringBuilder sb = new StringBuilder("[");
+        for (int x = 0; x < lignes; x++) {
+            for (int y = 0; y < colonnes; y++) {
+                Tuile tuile = getTuile(x, y);
+                sb.append("{")
+                  .append("\"x\":").append(tuile.getX()).append(",")
+                  .append("\"y\":").append(tuile.getY()).append(",")
+                  .append("\"type\":\"").append(tuile.getBaseType()).append("\",")
+                  .append("\"soldat\":").append(tuile.getSoldatPresent() != null)
+                  .append("},");
+            }
+        }
+        // Retire la dernière virgule
+        if (sb.length() > 1) sb.deleteCharAt(sb.length() - 1);
+        sb.append("]");
+        return sb.toString();
+    }
+
 }

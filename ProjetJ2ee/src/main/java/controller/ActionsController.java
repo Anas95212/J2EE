@@ -1,6 +1,8 @@
 package controller;
 
 import java.io.IOException;
+
+
 import java.util.Objects;
 
 import jakarta.servlet.RequestDispatcher;
@@ -46,6 +48,11 @@ public class ActionsController {
             case "attack":
                 attack(request, response);
                 break;
+                
+            case "updateState":
+                updateState(request, response);
+                break;
+
 
             default:
                 // Action non reconnue, renvoyer vers game.jsp
@@ -75,159 +82,73 @@ public class ActionsController {
 
     private void moveSoldier(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-    	Boolean actionUsed = (Boolean) request.getSession().getAttribute("actionUsedThisTurn");
+        Boolean actionUsed = (Boolean) request.getSession().getAttribute("actionUsedThisTurn");
         if (actionUsed != null && actionUsed) {
             request.setAttribute("error", "Vous avez déjà effectué une action ce tour-ci !");
             redirectToGameJsp(request, response);
             return;
         }
-        // 1) Récup gameId (obligatoire)
-        String gameId = request.getParameter("gameId");
-        if (gameId == null || gameId.isEmpty()) {
-            request.setAttribute("error", "Pas de gameId fourni !");
-            redirectToGameJsp(request, response);
-            return;
-        }
 
-        // 2) Trouver la partie dans la liste
+        String gameId = request.getParameter("gameId");
         Partie partie = findPartie(gameId);
         if (partie == null) {
-            request.setAttribute("error", "Impossible de trouver la partie " + gameId + " dans la liste statique.");
+            request.setAttribute("error", "Partie introuvable !");
             redirectToGameJsp(request, response);
             return;
         }
 
-        // 3) Récup pseudo
         String pseudo = (String) request.getSession().getAttribute("loggedUser");
-        if (pseudo == null) {
-            request.setAttribute("error", "Vous n'êtes pas connecté (loggedUser manquant).");
-            redirectToGameJsp(request, response);
-            return;
-        }
-
-        // 4) Vérifie si c’est bien le tour de ce pseudo
-        if (!isPlayerTurn(partie, pseudo)) {
+        if (pseudo == null || !isPlayerTurn(partie, pseudo)) {
             request.setAttribute("error", "Ce n'est pas votre tour !");
             redirectToGameJsp(request, response);
             return;
         }
 
-        // 5) Récup direction
         String direction = request.getParameter("direction");
-        if (direction == null || direction.isEmpty()) {
-            request.setAttribute("error", "Aucune direction précisée (north, south, east, west).");
-            redirectToGameJsp(request, response);
-            return;
-        }
-
-        // 6) Récup soldierId en session
         String soldierId = (String) request.getSession().getAttribute("selectedSoldierId");
-        if (soldierId == null) {
-            request.setAttribute("error", "Aucun soldat sélectionné.");
+        if (soldierId == null || direction == null) {
+            request.setAttribute("error", "Soldat ou direction invalide !");
             redirectToGameJsp(request, response);
             return;
         }
 
-        // Parse x_y
-        String[] coords = soldierId.split("_");
-        if (coords.length != 2) {
-            request.setAttribute("error", "Identifiant de soldat invalide : " + soldierId);
-            redirectToGameJsp(request, response);
-            return;
-        }
-        int oldX = Integer.parseInt(coords[0]);
-        int oldY = Integer.parseInt(coords[1]);
-
-        // 7) Récup tuile
+        int oldX = Integer.parseInt(soldierId.split("_")[0]);
+        int oldY = Integer.parseInt(soldierId.split("_")[1]);
         Tuile oldTile = partie.getCarte().getTuile(oldX, oldY);
-        if (oldTile == null || oldTile.getSoldatPresent() == null) {
-            request.setAttribute("error", "Soldat introuvable sur la tuile (" + soldierId + ").");
-            redirectToGameJsp(request, response);
-            return;
-        }
-
         Soldat s = oldTile.getSoldatPresent();
-        // Vérifier propriétaire
-        if (!Objects.equals(s.getOwner().getLogin(), pseudo)) {
-            request.setAttribute("error", "Ce soldat ne vous appartient pas.");
-            redirectToGameJsp(request, response);
-            return;
-        }
 
-        // Calculer la nouvelle position
         int newX = oldX, newY = oldY;
         switch (direction) {
             case "north": newX--; break;
             case "south": newX++; break;
             case "east":  newY++; break;
             case "west":  newY--; break;
-            default:
-                request.setAttribute("error", "Direction inconnue : " + direction);
-                redirectToGameJsp(request, response);
-                return;
-        }
-
-        // Vérifier bornes
-        if (newX < 0 || newX >= partie.getCarte().getLignes() ||
-            newY < 0 || newY >= partie.getCarte().getColonnes()) {
-            request.setAttribute("error", "Déplacement hors limites !");
-            redirectToGameJsp(request, response);
-            return;
         }
 
         Tuile newTile = partie.getCarte().getTuile(newX, newY);
-
-        // Vérif MONTAGNE
-        if (newTile.getBaseType() == TypeTuile.MONTAGNE) {
-            request.setAttribute("error", "Impossible de traverser la montagne !");
+        if (newTile == null || newTile.getSoldatPresent() != null) {
+            request.setAttribute("error", "Déplacement impossible !");
             redirectToGameJsp(request, response);
             return;
         }
 
-        // Vérif soldatPresent => combat
-        if (newTile.getSoldatPresent() != null) {
-            Soldat other = newTile.getSoldatPresent();
-            if (!other.getOwner().getLogin().equals(pseudo)) {
-                // Combat => rediriger vers combat.jsp
-                response.sendRedirect(request.getContextPath() + "/vue/combat.jsp");
-                return;
-            } else {
-                // S'il appartient au même joueur => refus
-                request.setAttribute("error", "Un de vos soldats occupe déjà cette case !");
-                redirectToGameJsp(request, response);
-                return;
-            }
-        }
-
-        // Vérif VILLE => combat
-        if (newTile.getBaseType() == TypeTuile.VILLE) {
-            response.sendRedirect(request.getContextPath() + "/vue/combat.jsp");
-            return;
-        }
-
-        // OK => déplacement
-        // Mémoriser oldX/oldY
-        request.getSession().setAttribute("undoX", oldX);
-        request.getSession().setAttribute("undoY", oldY);
-
-        // Retirer soldat de l'ancienne tuile
+        // Déplacement
         oldTile.setSoldatPresent(null);
-
-        // Placer soldat sur la nouvelle
         newTile.setSoldatPresent(s);
         s.setPositionX(newX);
         s.setPositionY(newY);
-
-        // Mettre à jour soldierId
         request.getSession().setAttribute("selectedSoldierId", newX + "_" + newY);
-
-        request.setAttribute("moveMessage", "Déplacement effectué vers " + direction
-                + " (nouvelle position : " + newX + "," + newY + ").");
-        
         request.getSession().setAttribute("actionUsedThisTurn", true);
-        PartieWebSocket.broadcastGameUpdate(gameId);
+
+        // Diffusion uniquement si nécessaire
+        if (isPlayerTurn(partie, pseudo)) {
+            PartieWebSocket.broadcastGameUpdate(gameId);
+        }
+        System.out.println("[ActionsController] Déplacement de " + pseudo + " vers (" + newX + "," + newY + ")");
         redirectToGameJsp(request, response);
     }
+
+
 
     private void undoMove(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -332,12 +253,14 @@ public class ActionsController {
     private void endTurn(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        // 1. Récupération des données nécessaires
         String gameId = request.getParameter("gameId");
         if (gameId == null || gameId.isEmpty()) {
             request.setAttribute("error", "Pas de gameId !");
             redirectToGameJsp(request, response);
             return;
         }
+
         Partie partie = findPartie(gameId);
         if (partie == null) {
             request.setAttribute("error", "Partie introuvable !");
@@ -352,24 +275,35 @@ public class ActionsController {
             return;
         }
 
+        // 2. Vérification que c'est bien le tour du joueur
         if (!isPlayerTurn(partie, pseudo)) {
             request.setAttribute("error", "Ce n'est pas votre tour !");
             redirectToGameJsp(request, response);
             return;
         }
 
-        partie.nextPlayerTurn();
+        // 3. Passage explicite au tour suivant
+        partie.nextPlayerTurn(true); // Le booléen "true" indique qu'il s'agit d'une fin de tour légitime
 
-        // Nettoyer selection
+        // 4. Nettoyage des données de session liées à l'action
         request.getSession().removeAttribute("selectedSoldierId");
         request.getSession().removeAttribute("undoX");
         request.getSession().removeAttribute("undoY");
         request.setAttribute("endTurnMessage", "Fin de tour. Au suivant !");
         request.getSession().setAttribute("actionUsedThisTurn", false);
-        
-        PartieWebSocket.broadcastGameUpdate(gameId);
+
+        System.out.println("Fin de tour exécutée pour le joueur : " + pseudo);
+
+        // 5. Diffusion du message de mise à jour sans déclencher de changement de tour supplémentaire
+        PartieWebSocket.broadcastRefresh(gameId);
+
+        // 6. Redirection vers la page de jeu
         redirectToGameJsp(request, response);
     }
+
+
+
+
 
     private void attack(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -418,4 +352,24 @@ public class ActionsController {
             rd.forward(request, response);
         }
     }
+    
+    private void updateState(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String gameId = request.getParameter("gameId");
+        Partie partie = findPartie(gameId);
+
+        if (partie == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("{\"error\":\"Partie introuvable\"}");
+            return;
+        }
+
+        // Récupère les données nécessaires pour la mise à jour
+        String htmlCarte = partie.getCarte().toHTML(gameId);
+        String currentPlayer = partie.getJoueurs().get(partie.getIndexJoueurActuel()).getLogin();
+
+        // Retourne une réponse JSON
+        response.setContentType("application/json");
+        response.getWriter().write("{\"htmlCarte\":\"" + htmlCarte.replace("\"", "\\\"") + "\", \"currentPlayer\":\"" + currentPlayer + "\"}");
+    }
+
 }

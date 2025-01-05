@@ -32,6 +32,10 @@ public class PartieWebSocket {
      * - La valeur est le pseudo (ex: "admin").
      */
     private static final Map<Session, String> sessionPseudoMap = new ConcurrentHashMap<>();
+    
+ // Associe chaque pseudo (login) à un gameId
+    private static final Map<String, String> pseudoToGameId = new ConcurrentHashMap<>();
+
 
     /**
      * Liste globale des parties en cours (ou en attente).
@@ -46,31 +50,39 @@ public class PartieWebSocket {
      * Méthode appelée lorsqu'un client ouvre la connexion WebSocket.
      * On y lit le pseudo via ?user=Pseudo dans la query string.
      */
+
     @OnOpen
     public void onOpen(Session session) {
         if (session == null) {
             System.err.println("Erreur : session WebSocket null");
             return;
         }
-        // Ex: queryString = "user=admin"
+
         String query = session.getQueryString();
         String pseudo = extraireParametre(query, "user");
 
-        // S'il est vide ou absent, fallback "Joueur_sessionId"
         if (pseudo == null || pseudo.trim().isEmpty()) {
             pseudo = "Joueur_" + session.getId();
         }
 
         System.out.println("[WebSocket] Session ouverte : " + session.getId() + " | pseudo=" + pseudo);
 
-        // On stocke la session dans 'clients' avec "" comme gameId initial
-        clients.put(session, "");
-        // On stocke aussi le pseudo dans 'sessionPseudoMap'
+        // Ajoute ou met à jour la session
         sessionPseudoMap.put(session, pseudo);
+        clients.put(session, ""); // Pas encore de partie associée
 
-        // Envoyer la liste des parties (pour que le nouveau voie ce qui existe déjà)
+        // Si le pseudo est déjà associé à un gameId, le récupérer
+        if (pseudoToGameId.containsKey(pseudo)) {
+            String gameId = pseudoToGameId.get(pseudo);
+            clients.put(session, gameId);
+            System.out.println("[WebSocket] Reconnexion du pseudo " + pseudo + " à la partie " + gameId);
+        }
+
+        // Envoyer la liste des parties
         envoyerListeParties();
     }
+
+
 
     /**
      * Méthode appelée lorsqu'un message est reçu (en texte) depuis un client.
@@ -259,13 +271,16 @@ public class PartieWebSocket {
             return;
         }
 
-        // On associe ce WebSocket à ce gameId (dans clients)
+        // 4) Associe le pseudo au gameId
+        pseudoToGameId.put(pseudo, gameId);
+
+        // On associe également ce WebSocket à ce gameId (dans clients)
         clients.put(session, gameId);
 
-        // 4) Diffuser la liste des parties à tous
+        // 5) Diffuser la liste des parties à tous
         envoyerListeParties();
-        
-        // 5) Rediriger ce joueur vers salleAttente.jsp
+
+        // 6) Rediriger ce joueur vers salleAttente.jsp
         try {
             // Adapte ton contexte si besoin
             String contextPath = "/ProjetJ2ee";
@@ -279,12 +294,14 @@ public class PartieWebSocket {
 
             // On envoie ce message au SEUL joueur en question
             session.getBasicRemote().sendText(redirectJson);
+            System.out.println("[WebSocket] Redirection envoyée pour " + pseudo + " vers " + redirectUrl);
 
         } catch (Exception e) {
             System.err.println("Erreur lors de la redirection pour rejoindrePartie : " + e.getMessage());
             e.printStackTrace();
         }
     }
+
 
     /**
      * Lance la partie indiquée par gameId (réservée au créateur).
@@ -527,17 +544,135 @@ public class PartieWebSocket {
         }
         return null;
     }
+    
     public static void broadcastGameUpdate(String gameId) {
-        String msg = "{\"reload\":\"true\",\"gameId\":\"" + gameId + "\"}";
-        for (Session s : clients.keySet()) {
-            if (gameId.equals(clients.get(s))) {
+        Partie partie = getPartieById(gameId);
+        if (partie == null) {
+            System.err.println("Erreur : Partie introuvable pour gameId=" + gameId);
+            return;
+        }
+
+        // Ne diffuse qu'aux joueurs dont c'est le tour
+        String currentPlayer = partie.getJoueurs().get(partie.getIndexJoueurActuel()).getLogin();
+
+        String jsonMessage = convertirCarteAvecJoueurEnJSON(partie);
+        System.out.println("[WebSocket] Diffusion de l'état de la partie : " + jsonMessage);
+
+        for (Session session : clients.keySet()) {
+            String pseudo = sessionPseudoMap.get(session);
+
+            if (gameId.equals(clients.get(session))) {
                 try {
-                    s.getBasicRemote().sendText(msg);
+                    // Ne diffuse qu'au joueur actif
+                    if (pseudo.equals(currentPlayer)) {
+                        session.getBasicRemote().sendText(jsonMessage);
+                        System.out.println("[WebSocket] Message envoyé au joueur actif : " + pseudo);
+                    }
                 } catch (Exception e) {
+                    System.err.println("[WebSocket] Erreur lors de l'envoi au client : " + session.getId());
                     e.printStackTrace();
                 }
             }
         }
     }
+
+    
+    private static String convertirCarteAvecJoueurEnJSON(Partie partie) {
+        Carte carte = partie.getCarte();
+        StringBuilder json = new StringBuilder();
+        json.append("{");
+        json.append("\"type\":\"update\",");
+        json.append("\"gameId\":\"").append(partie.getGameId()).append("\",");
+        json.append("\"htmlCarte\":\"").append(carte.toHTML(partie.getGameId()).replace("\"", "\\\"")).append("\",");
+        json.append("\"currentPlayer\":\"").append(partie.getJoueurs().get(partie.getIndexJoueurActuel()).getLogin()).append("\"");
+        json.append("}");
+        return json.toString();
+    }
+
+    private static Partie getPartieById(String gameId) {
+        for (Partie p : parties) {
+            if (p.getGameId().equals(gameId)) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    private static String convertirCarteEnJSON(Partie partie) {
+        Carte carte = partie.getCarte();
+        StringBuilder json = new StringBuilder();
+        json.append("{");
+        json.append("\"type\":\"update\",");
+        json.append("\"gameId\":\"").append(partie.getGameId()).append("\",");
+        json.append("\"htmlCarte\":\"").append(carte.toHTML(partie.getGameId()).replace("\"", "\\\"")).append("\"");
+        json.append("}");
+        return json.toString();
+    }
+    
+    public static void notifyGameStateUpdate(String gameId) {
+        Partie partie = null;
+        for (Partie p : parties) {
+            if (p.getGameId().equals(gameId)) {
+                partie = p;
+                break;
+            }
+        }
+
+        if (partie == null) {
+            System.err.println("Partie introuvable pour gameId=" + gameId);
+            return;
+        }
+
+        // Construire l'objet JSON contenant l'état de la partie
+        String json;
+        try {
+            StringBuilder sb = new StringBuilder("{");
+            sb.append("\"type\":\"gameUpdate\",");
+            sb.append("\"gameId\":\"").append(gameId).append("\",");
+            sb.append("\"currentPlayer\":\"").append(partie.getJoueurs().get(partie.getIndexJoueurActuel()).getLogin()).append("\",");
+            sb.append("\"carte\":").append(partie.getCarte().toJSON()); // Ajoute une méthode `toJSON` dans Carte
+            sb.append("}");
+            json = sb.toString();
+        } catch (Exception e) {
+            System.err.println("Erreur lors de la construction du JSON de gameUpdate : " + e.getMessage());
+            e.printStackTrace();
+            return;
+        }
+
+        // Envoyer l'état de la partie à tous les joueurs de la partie
+        for (Session s : clients.keySet()) {
+            if (gameId.equals(clients.get(s))) {
+                try {
+                    s.getBasicRemote().sendText(json);
+                } catch (Exception e) {
+                    System.err.println("Erreur lors de l'envoi de l'update à la session " + s.getId() + " : " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    
+    public static void broadcastRefresh(String gameId) {
+        String msg = "{\"type\":\"refresh\",\"gameId\":\"" + gameId + "\"}";
+        System.out.println("[WebSocket] Envoi du message refresh : " + msg);
+
+        for (Session s : clients.keySet()) {
+            String clientGameId = clients.get(s);
+            if (gameId.equals(clientGameId)) {
+                try {
+                    // Envoi uniquement le message sans affecter l'état de la partie
+                    s.getBasicRemote().sendText(msg);
+                    System.out.println("[WebSocket] Refresh envoyé au client : " + s.getId());
+                } catch (Exception e) {
+                    System.err.println("[WebSocket] Erreur lors de l'envoi du refresh au client " + s.getId() + " : " + e.getMessage());
+                }
+            }
+        }
+    }
+
+
+
+
 }
 

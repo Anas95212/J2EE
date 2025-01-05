@@ -240,4 +240,11 @@ public class Partie {
                 ", createur=" + createur +
                 '}';
     }
+    
+    public void nextPlayerTurn(boolean endTurnTriggered) {
+        if (endTurnTriggered && !joueurs.isEmpty()) {
+            indexJoueurActuel = (indexJoueurActuel + 1) % joueurs.size();
+        }
+    }
+
 }
