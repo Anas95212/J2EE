@@ -564,7 +564,7 @@ response.sendRedirect(redirectUrl);
         }
 
         // 10) Rediriger vers la page de jeu avec les mises à jour
-        PartieWebSocket.broadcastGameUpdate(gameId);
+        //PartieWebSocket.broadcastGameUpdate(gameId);
         redirectToGameJsp(request, response);
     }
 

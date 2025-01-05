@@ -8,21 +8,18 @@
 <%@ page import="controller.PartieWebSocket"%>
 
 <%
-   // On récupère le pseudo logué
    String pseudo = (String) session.getAttribute("loggedUser");
    if (pseudo == null) {
        out.println("Vous n'êtes pas connecté (loggedUser manquant).");
        return;
    }
 
-   // On récupère gameId
    String gameId = request.getParameter("gameId");
    if (gameId == null || gameId.trim().isEmpty()) {
        out.println("Aucun gameId fourni !");
        return;
    }
 
-   // Recherche de la partie
    Partie partie = null;
    for (Partie p : PartieWebSocket.getParties()) {
        if (p.getGameId().equals(gameId)) {
@@ -36,11 +33,9 @@
        return;
    }
 
-   // Joueur actuel
    int idx = partie.getIndexJoueurActuel();
    Joueur current = partie.getJoueurs().get(idx);
 
-   // Determine si c'est le tour de l'utilisateur
    boolean isMyTurn = current.getLogin().equals(pseudo);
 %>
 <!DOCTYPE html>
@@ -66,15 +61,14 @@
         }
         .container {
             display: flex;
-            justify-content: flex-start; /* Alignement de la carte et des boutons */
-            align-items: flex-start; /* Aligne les éléments en haut */
+            justify-content: flex-start; 
+            align-items: flex-start; 
             gap: 20px;
             margin: 20px;
             width: 90%;
         }
         .game-grid {
             flex: 0 1 auto;
-            margin-right: auto; /* Positionne la carte à gauche */
             background-color: #f0f0f0;
             border-collapse: collapse;
         }
@@ -91,11 +85,12 @@
         }
         .actions {
             flex: 0 1 auto;
-            margin-left: auto; /* Positionne les boutons à droite */
-            text-align: center;
             display: flex;
             flex-direction: column;
+            justify-content: center; /* Centre les boutons verticalement */
+            align-items: center; /* Centre les boutons horizontalement */
             gap: 15px;
+            text-align: center;
         }
         .actions button {
             background-color: #4CAF50;
@@ -109,7 +104,7 @@
             cursor: not-allowed;
         }
         hr {
-            width: 100%; /* Le trait prend toute la largeur */
+            width: 100%; 
             margin-top: 20px;
             border: 1px solid #ccc;
         }
@@ -185,6 +180,20 @@
     <% } else { %>
         <p style="color:lightgreen;">C'est à vous de jouer !</p>
     <% } %>
+    
+    <%-- Affichage du message de vie --%>
+        <c:if test="${not empty lifeMessage}">
+            <div class="alert alert-success">
+                ${lifeMessage}
+            </div>
+        </c:if>
+
+        <%-- Affichage du message d'erreur --%>
+        <c:if test="${not empty errorlife}">
+            <div class="alert alert-danger">
+                ${errorlife}
+            </div>
+        </c:if>
     <hr/>
 
     <div class="container">
