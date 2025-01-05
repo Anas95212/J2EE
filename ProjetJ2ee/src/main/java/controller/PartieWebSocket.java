@@ -575,7 +575,7 @@ public class PartieWebSocket {
             }
         }
     }
-
+   
     
     private static String convertirCarteAvecJoueurEnJSON(Partie partie) {
         Carte carte = partie.getCarte();
@@ -596,6 +596,48 @@ public class PartieWebSocket {
             }
         }
         return null;
+    }
+    public static void broadcastCombatStart(String gameId, String combatId) {
+        // Construire l'URL de redirection
+        String contextPath = "/ProjetJ2ee"; // Adaptez selon votre contexte
+        String redirectUrl = contextPath + "/vue/combat.jsp?gameId=" + gameId + "&combatId=" + combatId;
+
+        // Construire le message JSON pour redirection
+        String msg = "{\"type\":\"combatStart\",\"redirect\":\"" + redirectUrl + "\"}";
+        System.out.println("[WebSocket] Envoi du message combatStart : " + msg);
+
+        // Envoyer le message à tous les clients connectés à ce gameId
+        for (Session s : clients.keySet()) {
+            String clientGameId = clients.get(s); // Obtenir le gameId associé à cette session
+            System.out.println("Session: " + s);
+            if (gameId.equals(clientGameId)) { // Filtrer par gameId
+                try {
+                    s.getBasicRemote().sendText(msg); // Envoyer le message
+                    System.out.println("[WebSocket] Message combatStart envoyé à la session : " + s.getId());
+                } catch (Exception e) {
+                    System.err.println("[WebSocket] Erreur lors de l'envoi du message à la session : " + s.getId() + " - " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+
+    public static void broadcastCombatEnd(String gameId) {
+        String contextPath = "/ProjetJ2ee"; // Adapter si besoin
+        String redirectUrl = contextPath + "/game?gameId=" + gameId;
+        String msg = "{\"type\":\"combatEnd\",\"redirect\":\"" + redirectUrl + "\"}";
+
+        for (Session s : clients.keySet()) {
+            if (gameId.equals(clients.get(s))) {
+                try {
+                    s.getBasicRemote().sendText(msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     private static String convertirCarteEnJSON(Partie partie) {
@@ -675,4 +717,3 @@ public class PartieWebSocket {
 
 
 }
-

@@ -101,6 +101,9 @@
                     } else if (data.type === "refresh") {
                         console.log("Game.jsp: Rechargement demandé via WebSocket.");
                         location.reload(); // Recharge la page entière
+                    } else if (data.type === "combatStart") {
+                        console.log("Début du combat détecté. Redirection...");
+                        window.location.href = data.redirect; // Redirection vers combat.jsp
                     } else if (data.type === "error") {
                         console.error("Game.jsp: Message d'erreur reçu ->", data.message);
                         alert(`Erreur : ${data.message}`);

@@ -177,7 +177,15 @@ public class Carte {
 
 
 
-    
+    public List<Soldat> getTousSoldats() {
+        List<Soldat> resultat = new ArrayList<>();
+        for (Tuile t : tuiles) {
+            if (t.getSoldatPresent() != null) {
+                resultat.add(t.getSoldatPresent());
+            }
+        }
+        return resultat;
+    }
     
     
     /**

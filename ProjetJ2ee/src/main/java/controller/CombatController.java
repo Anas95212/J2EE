@@ -14,14 +14,10 @@ import model.Soldat;
 public class CombatController extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
-    /**
-     * GET ou POST : on route selon le param "action"
-     */
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         process(request, response);
     }
-
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         process(request, response);
@@ -32,17 +28,18 @@ public class CombatController extends HttpServlet {
 
         String action = request.getParameter("action");
         if (action == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Action manquante");
+            sendJsonError(response, "Action manquante");
             return;
         }
-
         String gameId = request.getParameter("gameId");
         String combatId = request.getParameter("combatId");
+
         Partie partie = findPartie(gameId);
         if (partie == null) {
             sendJsonError(response, "Partie introuvable");
             return;
         }
+
         Combat combat = partie.getCombatEnCours();
         if (combat == null || !combat.getCombatId().equals(combatId)) {
             sendJsonError(response, "Combat introuvable ou mismatch ID");
@@ -63,7 +60,6 @@ public class CombatController extends HttpServlet {
     }
 
     private void handleGetState(HttpServletResponse response, Combat combat) throws IOException {
-        // Renvoie un JSON avec pvSoldat1, pvSoldat2, enCours, tourSoldat1, etc
         response.setContentType("application/json");
         PrintWriter out = response.getWriter();
         out.print("{");
@@ -78,39 +74,40 @@ public class CombatController extends HttpServlet {
     }
 
     private void handleRollDice(HttpServletResponse response, Combat combat, Partie partie) throws IOException {
-        // On effectue le lancer de dé
+        // Lancer le dé
         combat.lancerDeEtAttaquer();
 
+        // Si un soldat est mort, on met fin au combat
         if (!combat.isEnCours()) {
-            // Un soldat est mort => on l'enlève de la carte
+            // Retirer le soldat mort
             if (combat.getPvSoldat1() <= 0) {
-                retirerSoldatDeLaCarte(combat.getSoldat1(), partie);
+                enleverSoldatDeLaCarte(combat.getSoldat1(), partie);
             }
             if (combat.getPvSoldat2() <= 0) {
-                retirerSoldatDeLaCarte(combat.getSoldat2(), partie);
+                enleverSoldatDeLaCarte(combat.getSoldat2(), partie);
             }
-
             // Fin du combat
-            partie.setCombatEnCours(null); 
-            // Redirection globale via WebSocket
+            partie.setCombatEnCours(null);
+
+            // Broadcast pour renvoyer tout le monde vers game.jsp
             PartieWebSocket.broadcastCombatEnd(partie.getGameId());
         }
 
-        // Réponse JSON vide ou un success message
         response.setContentType("application/json");
         response.getWriter().write("{\"status\":\"ok\"}");
     }
 
-    private void retirerSoldatDeLaCarte(Soldat s, Partie partie) {
-        // On va dans la carte, on récupère la tuile [x,y], on enlève le soldat
+    private void enleverSoldatDeLaCarte(Soldat s, Partie partie) {
         int x = s.getPositionX();
         int y = s.getPositionY();
-        if (x >= 0 && x < partie.getCarte().getLignes() && y >= 0 && y < partie.getCarte().getColonnes()) {
+        if (x >= 0 && x < partie.getCarte().getLignes() && 
+            y >= 0 && y < partie.getCarte().getColonnes()) {
+
             if (partie.getCarte().getTuile(x, y).getSoldatPresent() == s) {
                 partie.getCarte().getTuile(x, y).setSoldatPresent(null);
             }
         }
-        // Éventuellement, enlever le soldat de la liste des unités du joueur
+        // On enlève aussi ce soldat de la liste d'unités du joueur, si besoin
         s.getOwner().getUnites().remove(s);
     }
 
