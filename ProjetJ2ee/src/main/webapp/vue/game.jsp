@@ -124,19 +124,46 @@
             gameSocket.onmessage = function (event) {
                 try {
                     const data = JSON.parse(event.data);
+
                     if (data.type === "update") {
                         updateGameUI(data);
                     } else if (data.type === "refresh") {
                         location.reload();
                     } else if (data.type === "combatStart") {
-                        window.location.href = data.redirect;
+                        window.location.href = data.redirect; // Redirection vers combat.jsp
+                    } else if (data.type === "combatEnd") {
+                        console.log("Fin du combat détectée. Mise à jour de la carte.");
+                        location.reload(); // Recharge la page principale pour refléter les changements
                     } else if (data.type === "error") {
                         alert(`Erreur : ${data.message}`);
                     }
+                    else if (data.type === "defeat") {
+                        // Gestion de la défaite d'un joueur
+                        if (data.pseudo === "<%= pseudo %>") {
+                            alert("Vous avez été éliminé !");
+                            window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp";
+                        } else {
+                            console.log(`${data.pseudo} a été éliminé.`);
+                        }
+                    } else if (data.type === "gameEnd") {
+                        // Fin de la partie, redirection vers l'accueil
+                        alert("La partie est terminée !");
+                        window.location.href = "<%= request.getContextPath() %>/vue/lobby.jsp";
+                    }
+                    else if (data.type === "victory") {
+                        if (data.pseudo === "<%= pseudo %>") {
+                            alert("Félicitations, vous avez gagné !");
+                            window.location.href = "<%= request.getContextPath() %>/vue/victoire.jsp";
+                        } else {
+                            console.log(`${data.pseudo} a gagné la partie.`);
+                        }
+                    }
+
                 } catch (e) {
                     console.error("Erreur WebSocket :", e);
                 }
             };
+
         }
 
         function fetchGameState() {

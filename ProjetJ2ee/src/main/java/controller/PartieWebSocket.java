@@ -619,7 +619,7 @@ public class PartieWebSocket {
 
 
     public static void broadcastCombatEnd(String gameId) {
-        String contextPath = "/ProjetJ2ee"; // Adapter si besoin
+        String contextPath = "/ProjetJ2ee"; // Adaptez selon votre configuration
         String redirectUrl = contextPath + "/game?gameId=" + gameId;
         String msg = "{\"type\":\"combatEnd\",\"redirect\":\"" + redirectUrl + "\"}";
 
@@ -628,6 +628,7 @@ public class PartieWebSocket {
                 try {
                     s.getBasicRemote().sendText(msg);
                 } catch (Exception e) {
+                    System.err.println("[WebSocket] Erreur lors de l'envoi du message de fin de combat à la session : " + s.getId());
                     e.printStackTrace();
                 }
             }
@@ -706,8 +707,47 @@ public class PartieWebSocket {
             }
         }
     }
+    
+    
+    public static void broadcastDefeat(String gameId, String pseudo) {
+        String msg = "{\"type\":\"defeat\",\"pseudo\":\"" + pseudo + "\"}";
+        for (Session s : clients.keySet()) {
+            if (gameId.equals(clients.get(s))) {
+                try {
+                    s.getBasicRemote().sendText(msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
+    public static void broadcastGameEnd(String gameId) {
+        String msg = "{\"type\":\"gameEnd\"}";
+        for (Session s : clients.keySet()) {
+            if (gameId.equals(clients.get(s))) {
+                try {
+                    s.getBasicRemote().sendText(msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    
+    public static void broadcastVictory(String gameId, String pseudo) {
+        String msg = "{\"type\":\"victory\",\"pseudo\":\"" + pseudo + "\"}";
+        for (Session s : clients.keySet()) {
+            if (gameId.equals(clients.get(s))) {
+                try {
+                    s.getBasicRemote().sendText(msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
-
-
+    
+    
 }

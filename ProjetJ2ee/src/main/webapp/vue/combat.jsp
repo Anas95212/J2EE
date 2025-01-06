@@ -82,13 +82,26 @@ function connectWebSocket() {
             if (data.type === "combatStart") {
                 console.log("Début du combat détecté. Redirection...");
                 window.location.href = data.redirect; // Redirection vers combat.jsp
-            } else {
+            } else if (data.type === "combatEnd") {
+                console.log("Fin du combat détectée. Retour à la carte du jeu.");
+                window.location.href = data.redirect; // Redirection vers game.jsp
+            }
+            else if (data.type === "defeat" && data.pseudo === "<%= pseudo %>") {
+                alert("Vous avez perdu !");
+                window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp";
+            } else if (data.type === "victory" && data.pseudo === "<%= pseudo %>") {
+                alert("Félicitations, vous avez gagné !");
+                window.location.href = "<%= request.getContextPath() %>/vue/victoire.jsp";
+            }
+
+            else {
                 console.log("Message WebSocket reçu :", data);
             }
         } catch (error) {
             console.error("Erreur lors de la réception du message WebSocket :", error);
         }
     };
+
 
     socket.onopen = () => console.log("WebSocket connecté.");
     socket.onclose = () => console.log("WebSocket déconnecté.");

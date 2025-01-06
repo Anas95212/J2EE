@@ -123,8 +123,16 @@ public class Joueur {
      * Ajoute une ville à la liste des villes du joueur.
      * @param ville Ville à ajouter.
      */
+    public void supprimerUnite(Soldat soldat) {
+        this.unites.remove(soldat);
+    }
+
     public void ajouterVille(Ville ville) {
         this.villes.add(ville);
+    }
+    
+    public void incrementerScore(int points) {
+        this.score += points;
     }
  
     // Méthodes supplémentaires (si nécessaires)

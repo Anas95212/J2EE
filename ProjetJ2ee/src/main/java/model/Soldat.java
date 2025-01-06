@@ -40,7 +40,7 @@ public class Soldat {
         this.positionX = 0;
         this.positionY = 0;
         this.pointsDeDefense = 10; // Exemple de valeur par défaut
-        this.pointsDeVie = 100; // Exemple de valeur par défaut
+        this.pointsDeVie = 10; // Exemple de valeur par défaut
         this.blesse = false;
         this.owner = null;
     }
@@ -154,4 +154,3 @@ public class Soldat {
                 '}';
     }
 }
- 

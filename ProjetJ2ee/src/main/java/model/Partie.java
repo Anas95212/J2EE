@@ -220,4 +220,21 @@ public class Partie {
                 ", createur=" + createur +
                 '}';
     }
+    
+    
+    public List<Joueur> verifierJoueursElimines() {
+        List<Joueur> joueursElimines = new ArrayList<>();
+        for (Joueur joueur : new ArrayList<>(joueurs)) {
+            if (joueur.getUnites().isEmpty()) {
+                joueursElimines.add(joueur);
+                retirerJoueur(joueur);
+            }
+        }
+        return joueursElimines;
+    }
+
+    public boolean isPartieTerminee() {
+        return joueurs.size() <= 1; // La partie se termine quand un seul joueur reste
+    }
+
 }

@@ -5,10 +5,14 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import model.Combat;
 import model.Partie;
 import model.Soldat;
+import model.Tuile;
+import model.Joueur; 
 
 @WebServlet("/CombatController")
 public class CombatController extends HttpServlet {
@@ -73,30 +77,64 @@ public class CombatController extends HttpServlet {
         out.flush();
     }
 
+    
     private void handleRollDice(HttpServletResponse response, Combat combat, Partie partie) throws IOException {
-        // Lancer le dé
         combat.lancerDeEtAttaquer();
 
-        // Si un soldat est mort, on met fin au combat
+        // Vérification si un soldat est mort
         if (!combat.isEnCours()) {
-            // Retirer le soldat mort
+            // Retirer les soldats morts et notifier les défaites
             if (combat.getPvSoldat1() <= 0) {
                 enleverSoldatDeLaCarte(combat.getSoldat1(), partie);
+                PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat1().getOwner().getLogin());
             }
             if (combat.getPvSoldat2() <= 0) {
                 enleverSoldatDeLaCarte(combat.getSoldat2(), partie);
+                PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat2().getOwner().getLogin());
             }
-            // Fin du combat
-            partie.setCombatEnCours(null);
 
-            // Broadcast pour renvoyer tout le monde vers game.jsp
+            // Vérifie si un seul joueur reste en vie (victoire)
+            Joueur vainqueur = checkForVictory(partie);
+            if (vainqueur != null) {
+                PartieWebSocket.broadcastVictory(partie.getGameId(), vainqueur.getLogin());
+                PartieWebSocket.broadcastGameEnd(partie.getGameId()); // Fin de la partie
+                partie.setCombatEnCours(null); // Fin du combat
+                return;
+            }
+
+            // Sinon, fin du combat, mais la partie continue
+            partie.setCombatEnCours(null);
             PartieWebSocket.broadcastCombatEnd(partie.getGameId());
         }
 
+        // Réponse JSON indiquant que l'action a été effectuée avec succès
         response.setContentType("application/json");
         response.getWriter().write("{\"status\":\"ok\"}");
     }
 
+    private Joueur checkForVictory(Partie partie) {
+        List<Joueur> joueursRestants = new ArrayList<>();
+        for (Joueur joueur : partie.getJoueurs()) {
+            if (joueur.getUnites().size() > 0) { // Vérifie si le joueur a encore des unités
+                joueursRestants.add(joueur);
+            }
+        }
+        return joueursRestants.size() == 1 ? joueursRestants.get(0) : null;
+    }
+
+
+
+
+
+    private Partie findPartie(String gameId) {
+        if (gameId == null) return null;
+        for (Partie p : PartieWebSocket.getParties()) {
+            if (p.getGameId().equals(gameId)) {
+                return p;
+            }
+        }
+        return null;
+    }
     private void enleverSoldatDeLaCarte(Soldat s, Partie partie) {
         int x = s.getPositionX();
         int y = s.getPositionY();
@@ -111,18 +149,11 @@ public class CombatController extends HttpServlet {
         s.getOwner().getUnites().remove(s);
     }
 
-    private Partie findPartie(String gameId) {
-        if (gameId == null) return null;
-        for (Partie p : PartieWebSocket.getParties()) {
-            if (p.getGameId().equals(gameId)) {
-                return p;
-            }
-        }
-        return null;
-    }
-
     private void sendJsonError(HttpServletResponse response, String errorMsg) throws IOException {
         response.setContentType("application/json");
         response.getWriter().write("{\"error\":\"" + errorMsg + "\"}");
     }
+    
+    
+
 }
