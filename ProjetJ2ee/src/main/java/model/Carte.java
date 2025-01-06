@@ -3,6 +3,7 @@ package model;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import model.Tuile.TypeTuile;
 
@@ -213,9 +214,9 @@ public class Carte {
 
         // Fixer le nombre de tuiles pour chaque type
         int nbVilles = 5;
-        int nbForets = 6;
-        int nbMontagnes = 10;
-        //int nbSoldats = 2;
+        int nbForets = 5;
+        int nbMontagnes = 15;
+
 
         // Placer les villes
         for (int i = 0; i < nbVilles; i++) {
@@ -246,27 +247,6 @@ public class Carte {
             mettreAJourTuile(pos[0], pos[1], TypeTuile.VIDE, true);
         }
     }
-
-
-
-
-    /**
-     * Retourne une représentation sous forme de chaîne de caractères de la carte.
-     * Affiche chaque tuile et ses propriétés.
-     * 
-     * @return Une chaîne de caractères décrivant la carte.
-     */
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (int x = 0; x < lignes; x++) {
-            for (int y = 0; y < colonnes; y++) {
-                sb.append(getTuile(x, y).toString()).append(" ");
-            }
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
     
     public String toJSON() {
         StringBuilder sb = new StringBuilder("[");
@@ -286,5 +266,37 @@ public class Carte {
         sb.append("]");
         return sb.toString();
     }
+    public Tuile getTuilesLibresAleatoires() {
+        List<Tuile> tuilesLibres = new ArrayList<>();
+        for (int i = 0; i < lignes; i++) {
+            for (int j = 0; j < colonnes; j++) {
+                Tuile tuile = getTuile(i, j);
+                if (tuile.isEstVide() && tuile.getBaseType() == TypeTuile.VIDE) {
+                    tuilesLibres.add(tuile);
+                }
+            }
+        }
+        if (!tuilesLibres.isEmpty()) {
+            return tuilesLibres.get(new Random().nextInt(tuilesLibres.size()));
+        }
+        return null;
+    }
 
+    /**
+     * Retourne une représentation sous forme de chaîne de caractères de la carte.
+     * Affiche chaque tuile et ses propriétés.
+     * 
+     * @return Une chaîne de caractères décrivant la carte.
+     */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (int x = 0; x < lignes; x++) {
+            for (int y = 0; y < colonnes; y++) {
+                sb.append(getTuile(x, y).toString()).append(" ");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
 }

@@ -46,6 +46,7 @@ public class FrontControllerServlet extends HttpServlet {
             case "undo":
             case "endTurn":
             case "attack":
+            case "buySoldier":
                 // Redirection vers ActionsController pour toutes ces actions
                 new ActionsController().handle(request, response);
                 break;

@@ -92,7 +92,11 @@ public class Joueur {
      * @param pointsDeProduction Nouveaux points de production à définir.
      */
     public void setPointsDeProduction(int pointsDeProduction) {
-        this.pointsDeProduction = pointsDeProduction;
+        if (pointsDeProduction > 50) {
+            this.pointsDeProduction = 50;
+        } else {
+            this.pointsDeProduction = pointsDeProduction;
+        }
     }
  
     /**

@@ -12,6 +12,7 @@ import model.Partie;
 import model.Joueur;
 import model.Soldat;
 import model.Tuile;
+import model.Tuile.TypeTuile;
 import model.Combat;
 
 /**
@@ -57,10 +58,6 @@ public class ActionsController {
                 endTurn(request, response);
                 break;
 
-            case "attack":
-                attack(request, response);
-                break;
-
             case "updateState":
                 updateState(request, response);
                 break;
@@ -68,7 +65,9 @@ public class ActionsController {
             case "addLifeToSoldier":
                 addLifeToSoldier(request, response);
                 break;
-            
+            case "buySoldier":
+            	buySoldier(request, response);
+            	break;
             case "DoNothing":
             	endTurn(request, response);
                 break;
@@ -171,10 +170,14 @@ public class ActionsController {
             return;
         }
 
-        // Récupère la tuile cible
+        // Vérif MONTAGNE
         Tuile newTile = partie.getCarte().getTuile(newX, newY);
         if (newTile == null) {
             request.setAttribute("error", "Tuile cible introuvable !");
+            redirectToGameJsp(request, response);
+            return;
+        }else if (newTile.getBaseType() == TypeTuile.MONTAGNE) {
+            request.setAttribute("error", "Impossible de traverser la montagne !");
             redirectToGameJsp(request, response);
             return;
         }
@@ -194,13 +197,38 @@ public class ActionsController {
                 return;
             }
         }
-
+        //Joueur j = newTile.getBaseType().
+        if (newTile.getBaseType() == TypeTuile.VILLE) {
+            response.sendRedirect(request.getContextPath() + "/vue/combat.jsp");
+            return;
+        }
+        
         // Pas de collision => on déplace
         oldTile.setSoldatPresent(null);
         newTile.setSoldatPresent(s);
         s.setPositionX(newX);
         s.setPositionY(newY);
+        
+        if (newTile.getBaseType() == TypeTuile.FORET) {
+            Joueur owner = s.getOwner();
+            if (owner != null) {
+                int currentPoints = owner.getPointsDeProduction();
+                if (currentPoints < 50) {
 
+                    // Limite les points pour ne pas dépasser le maximum
+                    currentPoints = currentPoints + 5;
+                    owner.setPointsDeProduction(currentPoints);
+
+                    // Préparer un message pour afficher ce qui s'est passé
+                    String message = "Le joueur " + owner.getLogin() + " a gagné 5 points de production en entrant dans une forêt. Total : " + currentPoints + " pièces.";
+                    request.getSession().setAttribute("dernierMessage", message);
+                } else {
+                	String message = "Le joueur " + owner.getLogin() + " a atteint le maximum de 50 pièces. Aucun point ajouté.";
+                	request.getSession().setAttribute("dernierMessage", message);
+                }
+            }
+        }
+        
         // Stocker undo si on veut l'annuler
         request.getSession().setAttribute("undoX", oldX);
         request.getSession().setAttribute("undoY", oldY);
@@ -373,28 +401,6 @@ public class ActionsController {
     }
 
     /**
-     * 5) Méthode "attack" (autrefois placeholder),
-     *    mais on s'en sert rarement si le combat se lance directement en collision...
-     *    Ici, on pourrait gérer la sélection d'un soldat adverse sur la même tuile.
-     */
-    private void attack(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        // Option 1 : si tu gères l'attaque manuelle (ex: "attack" button)
-        // => on vérifie si 2 soldats sur la même tuile => doCombat
-        // => ou direct "no enemy => error"
-
-        request.setAttribute("attackMessage", "Attaque lancée (placeholder).");
-        // Ex: redirectToGameJsp(request, response);
-
-        // Ou si on veut forcer un vrai usage => 
-        //  1) Retrouver attaquant/defenseur
-        //  2) if ennemi => doCombat
-        //  etc.
-        redirectToGameJsp(request, response);
-    }
-
-    /**
      * 6) Mise à jour d'état en JSON => "/controller?action=updateState&gameId=..."
      *    Utilisé par fetch() depuis game.jsp ?
      */
@@ -426,20 +432,20 @@ public class ActionsController {
      */
     private void doCombat(Partie partie, Soldat attaquant, Soldat defenseur,
             String gameId, HttpServletRequest request, HttpServletResponse response)
-throws ServletException, IOException {
-// Crée le Combat
-Combat combat = new Combat(attaquant, defenseur);
-
-// Stocke dans la partie
-partie.setCombatEnCours(combat);
-
-// Diffuse l'info via WebSocket si nécessaire
-PartieWebSocket.broadcastCombatStart(gameId, combat.getCombatId());
-
-// Redirection vers la page combat.jsp
-String redirectUrl = request.getContextPath() + "/vue/combat.jsp?gameId=" + gameId + "&combatId=" + combat.getCombatId();
-response.sendRedirect(redirectUrl);
-}
+		throws ServletException, IOException {
+		// Crée le Combat
+		Combat combat = new Combat(attaquant, defenseur);
+		
+		// Stocke dans la partie
+		partie.setCombatEnCours(combat);
+		
+		// Diffuse l'info via WebSocket si nécessaire
+		PartieWebSocket.broadcastCombatStart(gameId, combat.getCombatId());
+		
+		// Redirection vers la page combat.jsp
+		String redirectUrl = request.getContextPath() + "/vue/combat.jsp?gameId=" + gameId + "&combatId=" + combat.getCombatId();
+		response.sendRedirect(redirectUrl);
+		}
 
 
     /**
@@ -565,6 +571,65 @@ response.sendRedirect(redirectUrl);
 
         // 10) Rediriger vers la page de jeu avec les mises à jour
         //PartieWebSocket.broadcastGameUpdate(gameId);
+        redirectToGameJsp(request, response);
+    }
+    private void buySoldier(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String gameId = request.getParameter("gameId");
+        if (gameId == null || gameId.isEmpty()) {
+            request.setAttribute("error", "Pas de gameId fourni !");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        Partie partie = findPartie(gameId);
+        if (partie == null) {
+            request.setAttribute("error", "Partie introuvable !");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        String pseudo = (String) request.getSession().getAttribute("loggedUser");
+        if (pseudo == null) {
+            request.setAttribute("error", "Vous n'êtes pas connecté.");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        Joueur joueur = partie.getJoueurs().stream()
+                .filter(j -> j.getLogin().equals(pseudo))
+                .findFirst()
+                .orElse(null);
+
+        if (joueur == null) {
+            request.setAttribute("error", "Joueur introuvable !");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // Vérifier si le joueur a suffisamment de pièces
+        if (joueur.getPointsDeProduction() < 15) {
+            request.setAttribute("error", "Pas assez de pièces pour acheter un soldat !");
+            redirectToGameJsp(request, response);
+            return;
+        }
+
+        // Soustraire le coût
+        joueur.setPointsDeProduction(joueur.getPointsDeProduction() - 15);
+
+        // Ajouter un soldat sur une tuile aléatoire
+        Tuile tuileDisponible = partie.getCarte().getTuilesLibresAleatoires();
+        if (tuileDisponible != null) {
+            Soldat nouveauSoldat = new Soldat(0,0,10,100,joueur);
+            nouveauSoldat.setPositionX(tuileDisponible.getX());
+            nouveauSoldat.setPositionY(tuileDisponible.getY());
+            tuileDisponible.setSoldatPresent(nouveauSoldat);
+            joueur.ajouterUnite(nouveauSoldat);
+        } else {
+            request.setAttribute("error", "Impossible d'ajouter un soldat, aucune tuile disponible !");
+        }
+
+        // Retourner à la page de jeu
         redirectToGameJsp(request, response);
     }
 

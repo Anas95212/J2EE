@@ -44,15 +44,16 @@
     <title>Jeu 4X - Carte du Jeu</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #2d2d2d;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+		    font-family: 'Arial', sans-serif;
+		    background-color: #2d2d2d;
+		    color: #fff;
+		    margin: 0;
+		    padding: 0;
+		    display: flex;
+		    flex-direction: column;
+		    align-items: center;
+		    overflow: hidden; /* Évite les barres de défilement */
+		}
         h1 {
             text-align: center;
             margin-top: 20px;
@@ -60,18 +61,18 @@
             color: #ffd700;
         }
         .container {
-            display: flex;
-            justify-content: flex-start; 
-            align-items: flex-start; 
-            gap: 20px;
-            margin: 20px;
-            width: 90%;
-        }
+		    display: flex;
+		    justify-content: space-between;
+		    align-items: flex-start;
+		    gap: 20px;
+		    width: 100%;
+		    max-width: 1200px; /* Ajuste la largeur maximale */
+		}
         .game-grid {
-            flex: 0 1 auto;
-            background-color: #f0f0f0;
-            border-collapse: collapse;
-        }
+		    flex: 0 1 auto;
+		    background-color: #f0f0f0;
+		    border-collapse: collapse;
+		}
         .game-grid td {
             width: 50px;
             height: 50px;
@@ -84,14 +85,13 @@
             object-fit: cover;
         }
         .actions {
-            flex: 0 1 auto;
-            display: flex;
-            flex-direction: column;
-            justify-content: center; /* Centre les boutons verticalement */
-            align-items: center; /* Centre les boutons horizontalement */
-            gap: 15px;
-            text-align: center;
-        }
+		    flex: 0 1 auto;
+		    text-align: center;
+		    display: flex;
+		    flex-direction: column;
+		    gap: 15px;
+		    align-items: center;
+		}
         .actions button {
             background-color: #4CAF50;
             color: white;
@@ -104,10 +104,40 @@
             cursor: not-allowed;
         }
         hr {
-            width: 100%; 
+            width: 100%; /* Le trait prend toute la largeur */
             margin-top: 20px;
             border: 1px solid #ccc;
         }
+        .shop {
+		    margin-top: 20px;
+		    text-align: center;
+		    background-color: #333;
+		    padding: 10px;
+		    border-radius: 8px;
+		    color: white;
+		    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.3);
+		    width: 200px; /* Ajuste la largeur du shop */
+		}
+		
+		.shop h2 {
+		    margin-bottom: 10px;
+		    color: #ffd700;
+		}
+		
+		.shop button {
+		    background-color: #4CAF50;
+		    color: white;
+		    padding: 10px 20px;
+		    border-radius: 5px;
+		    cursor: pointer;
+		    margin-top: 10px;
+		}
+		
+		.shop button:disabled {
+		    background-color: #888;
+		    cursor: not-allowed;
+		}
+		
     </style>
     <script>
         let gameSocket;
@@ -208,6 +238,17 @@
         <p style="color:lightgreen;">C'est à vous de jouer !</p>
     <% } %>
     
+    <% 
+	    // Vérifie si un joueur a gagné des points
+	    String dernierMessage = (String) session.getAttribute("dernierMessage");
+	    if (dernierMessage != null && !dernierMessage.isEmpty()) {
+	%>
+	    <p style="color:yellow; font-weight:bold;"><%= dernierMessage %></p>
+	<%
+	        // Réinitialiser le message après l'affichage pour éviter de le montrer plusieurs fois
+	        session.removeAttribute("dernierMessage");
+	    }
+	%>
     <%-- Affichage du message de vie --%>
         <c:if test="${not empty lifeMessage}">
             <div class="alert alert-success">
@@ -263,6 +304,19 @@
                 <input type="hidden" name="gameId" value="<%= gameId %>"/>
                 <button type="submit" <%= !isMyTurn ? "disabled" : "" %>>Fin de tour</button>
             </form>
+            
+            <!-- SHOP -->
+		    <div class="shop">
+		        <h2>Shop</h2>
+		        <p>Votre monnaie : <span id="player-coins"><%= current.getPointsDeProduction() %></span> pièces</p>
+		        <form action="<%= request.getContextPath() %>/controller" method="post">
+		            <input type="hidden" name="action" value="buySoldier"/>
+		            <input type="hidden" name="gameId" value="<%= gameId %>"/>
+		            <button type="submit" <%= current.getPointsDeProduction() < 15 ? "disabled" : "" %>>
+		                Acheter un soldat (15 pièces)
+		            </button>
+		        </form>
+		    </div>
         </div>
     </div>
 </body>

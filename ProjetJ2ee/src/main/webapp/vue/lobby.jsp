@@ -277,8 +277,8 @@
             <label for="nom-partie">Nom de la Partie :</label>
             <input type="text" id="nom-partie" required>
             <br>
-            <label for="max-joueurs">Nombre de joueurs maximum (1-6) :</label>
-            <input type="number" id="max-joueurs" min="1" max="6" required>
+            <label for="max-joueurs">Nombre de joueurs maximum (2-6) :</label>
+            <input type="number" id="max-joueurs" min="2" max="6" required>
             <br><br>
             <button type="submit" class="button">Créer la Partie</button>
         </form>
