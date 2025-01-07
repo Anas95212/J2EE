@@ -266,6 +266,15 @@
 <body>
     <div class="container">
         <h1>Lobby des Parties</h1>
+        
+        <!-- BOUTON VERS LA PAGE utilisateur.jsp -->
+<div class="container">
+    <form action="<%= request.getContextPath() %>/vue/utilisateur.jsp" method="get">
+        <button type="submit" class="button">
+            Mon Profil
+        </button>
+    </form>
+</div>
 
         <h2>Parties disponibles :</h2>
         <div id="liste-parties">
