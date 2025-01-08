@@ -209,10 +209,25 @@
                         window.location.href = data.redirect;
                     }else if (data.type === "defeat" && data.pseudo === "<%= pseudo %>") {
                         alert("Vous avez perdu !");
-                        window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp";
+                        // Redirection VERS defaite.jsp
+                        // On y ajoute le score récupéré dans data.score
+                        window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp"
+                            + "?pseudo=" + encodeURIComponent(pseudo)
+                            + "&score=" + encodeURIComponent(data.score)
+                            + "&gameId=" + encodeURIComponent(gameId);
+
                     } else if (data.type === "victory" && data.pseudo === "<%= pseudo %>") {
                         alert("Félicitations, vous avez gagné !");
-                        window.location.href = "<%= request.getContextPath() %>/vue/victoire.jsp";
+
+                        // data.scores est un tableau de {pseudo, score} pour tous les joueurs.
+                        // On le passe dans l’URL en JSON sérialisé
+                        // ATTENTION : il faut l'encoder pour éviter les problèmes d'espaces/spéciaux
+                        
+                        window.location.href = "<%= request.getContextPath() %>/vue/victoire.jsp"
+                            + "?pseudo=" + encodeURIComponent(pseudo)
+                            + "&score=" + encodeURIComponent(data.score)
+                            + "&gameId=" + encodeURIComponent(gameId);
+
                     } else {
                         console.log("Message WebSocket reçu :", data);
                     }

@@ -2,6 +2,8 @@ package controller;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import jakarta.websocket.*;
@@ -362,7 +364,7 @@ public class PartieWebSocket {
             // Créer un soldat (en supposant Soldat(...) a un constructeur
             // qui prend le Joueur en param, ou on le setOwner(j).
             // Ici on utilise un constructeur custom:
-            Soldat s = new Soldat(0, 0, 10, 100, j);
+            Soldat s = new Soldat(0, 0, 10, 20, j);
             // Chercher une tuile libre pour le soldat
             int x, y;
             do {
@@ -710,16 +712,36 @@ public class PartieWebSocket {
     
     
     public static void broadcastDefeat(String gameId, String pseudo) {
-        String msg = "{\"type\":\"defeat\",\"pseudo\":\"" + pseudo + "\"}";
+    	Partie partie = getPartieById(gameId);
+        if (partie == null) {
+            System.err.println("Erreur : Partie introuvable pour gameId=" + gameId);
+            return;
+        }
+
+        Joueur joueurElimine = partie.getJoueurs().stream()
+                                     .filter(j -> j.getLogin().equals(pseudo))
+                                     .findFirst()
+                                     .orElse(null);
+
+        if (joueurElimine == null) {
+            System.err.println("Erreur : Joueur introuvable pour pseudo=" + pseudo);
+            return;
+        }
+        String msg = "{\"type\":\"defeat\",\"pseudo\":\"" + pseudo + "\",\"score\":" + joueurElimine.getScore() + "}";
         for (Session s : clients.keySet()) {
             if (gameId.equals(clients.get(s))) {
                 try {
                     s.getBasicRemote().sendText(msg);
+                    System.out.println("[WebSocket] Envoi du message des score defaite : " + msg);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
+        
+        broadcastScores(partie.getGameId(),partie.getJoueurs());
+        
+        storeGameScore(gameId, pseudo, joueurElimine.getScore());
     }
 
     public static void broadcastGameEnd(String gameId) {
@@ -736,17 +758,128 @@ public class PartieWebSocket {
     }
     
     public static void broadcastVictory(String gameId, String pseudo) {
-        String msg = "{\"type\":\"victory\",\"pseudo\":\"" + pseudo + "\"}";
+        Partie partie = getPartieById(gameId);
+        if (partie == null) {
+            System.err.println("Erreur : Partie introuvable pour gameId=" + gameId);
+            return;
+        }
+        
+        // Trouver le joueur vainqueur
+        Joueur vainqueur = partie.getJoueurs().stream()
+                                 .filter(j -> j.getLogin().equals(pseudo))
+                                 .findFirst()
+                                 .orElse(null);
+        if (vainqueur == null) {
+            System.err.println("Erreur : Joueur introuvable pour pseudo=" + pseudo);
+            return;
+        }
+        
+        // Construire le message JSON (un seul score, celui du vainqueur)
+        String msg = "{\"type\":\"victory\","
+                   + "\"pseudo\":\"" + pseudo + "\","
+                   + "\"score\":" + vainqueur.getScore() + "}";
+        
+        // Envoyer le message à tous les joueurs de la partie
         for (Session s : clients.keySet()) {
             if (gameId.equals(clients.get(s))) {
                 try {
                     s.getBasicRemote().sendText(msg);
+                    System.out.println("[WebSocket] Envoi du message victoire : " + msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        
+        // On peut garder si besoin : fin de partie, etc.
+        // broadcastGameEnd(partie.getGameId());
+        
+        storeGameScore(gameId, vainqueur.getLogin(), vainqueur.getScore());
+    }
+
+
+
+    public static void fetchScores(String gameId, Session session) {
+        Partie partie = getPartieById(gameId);
+        if (partie == null) {
+            System.err.println("Erreur : Partie introuvable pour gameId=" + gameId);
+            return;
+        }
+
+        // Construire un tableau JSON contenant les scores des joueurs
+        StringBuilder scoresJson = new StringBuilder("[");
+        List<Joueur> joueurs = partie.getJoueurs();
+        for (int i = 0; i < joueurs.size(); i++) {
+            Joueur joueur = joueurs.get(i);
+            scoresJson.append("{\"pseudo\":\"").append(joueur.getLogin())
+                      .append("\",\"score\":").append(joueur.getScore()).append("}");
+            if (i < joueurs.size() - 1) {
+                scoresJson.append(",");
+            }
+        }
+        scoresJson.append("]");
+
+        // Construire le message JSON complet
+        String msg = "{\"type\":\"scores\",\"scores\":" + scoresJson + "}";
+
+        // Envoyer le message uniquement à la session demandante
+        try {
+            session.getBasicRemote().sendText(msg);
+            System.out.println("[WebSocket] Scores envoyés au joueur : " + session.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    
+    
+    
+    public static void broadcastScores(String gameId, List<Joueur> joueurs) {
+        StringBuilder scoresJson = new StringBuilder("{\"type\":\"scores\",\"scores\":[");
+        for (int i = 0; i < joueurs.size(); i++) {
+            Joueur joueur = joueurs.get(i);
+            scoresJson.append("{\"pseudo\":\"").append(joueur.getLogin()).append("\",")
+                      .append("\"score\":").append(joueur.getScore()).append("}");
+            if (i < joueurs.size() - 1) scoresJson.append(",");
+        }
+        scoresJson.append("]}");
+
+        for (Session session : clients.keySet()) {
+            if (gameId.equals(clients.get(session))) {
+                try {
+                    session.getBasicRemote().sendText(scoresJson.toString());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
     }
+
+    
+    private static void storeGameScore(String gameId, String pseudo, int score) {
+        // Ici, on stocke gameId en VARCHAR => on fait un simple setString(1, gameId)
+        try (Connection conn = DatabaseConnection.getConnection()) {
+
+            String insertSQL = "INSERT INTO parties (id_partie, pseudo_joueur, score_joueur) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+                stmt.setString(1, gameId);     // On insère le gameId tel quel (VARCHAR)
+                stmt.setString(2, pseudo);
+                stmt.setInt(3, score);
+
+                int rows = stmt.executeUpdate();
+                if (rows > 0) {
+                    System.out.println("[storeGameScore] Score inséré avec succès : "
+                            + "gameId=" + gameId + ", pseudo=" + pseudo + ", score=" + score);
+                } else {
+                    System.err.println("[storeGameScore] Aucune ligne insérée...");
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     
     

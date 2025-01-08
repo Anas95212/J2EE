@@ -41,15 +41,22 @@
 </head>
 <body>
     <h1>Défaite...</h1>
-    <p>Vous avez été éliminé. Mieux vaut essayer une nouvelle partie !</p>
     
-    <p class="score">Votre score final : <span id="user-score"></span></p>
     
-    <script>
-        // Récupérer le score depuis la session
-        const userScore = sessionStorage.getItem("userScore");
-        document.getElementById("user-score").innerText = userScore || "Non disponible";
-    </script>
+        <%
+    String pseudo = request.getParameter("pseudo");
+    String score = request.getParameter("score");
+
+    if (pseudo == null || score == null) {
+        out.println("Erreur : paramètres manquants !");
+        return;
+    }
+%>
+    
+   <h2>Dommage, <%= pseudo %>, vous avez perdu !</h2>
+    <p>Votre score final : <%= score %></p>
+    
+
     
     <a href="<%= request.getContextPath() %>/vue/lobby.jsp">Retour au Lobby</a>
     

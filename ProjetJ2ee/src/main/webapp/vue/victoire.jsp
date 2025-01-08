@@ -1,4 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="controller.ScoreController" %>
+<%@ page import="controller.ScoreController.ScoreData" %>
+<%@ page import="java.util.List" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -43,18 +46,64 @@
     <h1>Victoire !</h1>
     <p>Félicitations, vous êtes le dernier joueur en vie et vous avez remporté la partie !</p>
     
-    <h2>Scores finaux :</h2>
-    <table>
-        <thead>
+    
+         <%
+        String pseudo = request.getParameter("pseudo");
+        String score = request.getParameter("score");
+        String gameId = request.getParameter("gameId");
+        
+        if (pseudo == null || score == null) {
+            out.println("Erreur : paramètres manquants !");
+            return;
+        }
+    %>
+    
+<h2>Bravo <%= pseudo %>, vous êtes le vainqueur !</h2>
+    <p>Votre score final : <%= score %></p>
+    
+    
+        // Afficher les infos vainqueur
+    %>
+    <h2>Bravo <%= pseudo %>, vous êtes le vainqueur !</h2>
+    <p>Votre score final : <%= score %></p>
+
+    <%
+        // Appeler ScoreController pour récupérer tous les scores de cette partie
+        List<ScoreData> listeScores = null;
+        if (gameId != null && !gameId.isEmpty()) {
+            ScoreController sc = new ScoreController();
+            listeScores = sc.getScoresForGameId(gameId);
+        }
+    %>
+
+    <!-- Afficher la liste des scores -->
+    <h3>Scores de la partie (id_partie = <%= gameId %>):</h3>
+    <%
+        if (listeScores != null && !listeScores.isEmpty()) {
+    %>
+        <table>
             <tr>
                 <th>Pseudo</th>
                 <th>Score</th>
             </tr>
-        </thead>
-        <tbody id="scores-table">
-            <!-- Les scores seront ajoutés ici via WebSocket -->
-        </tbody>
-    </table>
+            <%
+                for (ScoreData sd : listeScores) {
+            %>
+            <tr>
+                <td><%= sd.getPseudo() %></td>
+                <td><%= sd.getScore() %></td>
+            </tr>
+            <%
+                }
+            %>
+        </table>
+    <%
+        } else {
+            out.println("<p>Aucun score trouvé pour cette partie.</p>");
+        }
+    %>
+    
+    
     <a href="<%= request.getContextPath() %>/vue/lobby.jsp">Retour au Lobby</a>
 </body>
 </html>
