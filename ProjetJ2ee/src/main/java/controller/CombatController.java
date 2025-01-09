@@ -89,7 +89,7 @@ public class CombatController extends HttpServlet {
         combat.lancerDeEtAttaquer();
  
         // Vérifier si le combat est terminé
-        if (!combat.isEnCours()) {
+        if (!combat.isEnCours()) {	
         	if (combat.getPvSoldat1() <= 0) {
                 enleverSoldatDeLaCarte(combat.getSoldat1(), partie);
                 combat.getSoldat2().getOwner().incrementerScore(100);

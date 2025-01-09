@@ -122,49 +122,46 @@ public class Carte {
             html.append("<tr>");
             for (int y = 0; y < colonnes; y++) {
                 Tuile tuile = getTuile(x, y);
-
-                // Récupère la baseType
                 TypeTuile bt = tuile.getBaseType();
+                Soldat soldat = tuile.getSoldatPresent();
 
-                // Commencer la <td>
                 html.append("<td style='position:relative; width:50px; height:50px; ");
 
-                // S’il y a un soldat, on met un fond coloré
-                if (tuile.getSoldatPresent() != null) {
-                    Joueur owner = tuile.getSoldatPresent().getOwner();
+                // Ajouter la couleur de fond si un soldat est présent
+                if (soldat != null) {
+                    Joueur owner = soldat.getOwner();
                     if (owner != null && owner.getCouleur() != null) {
                         html.append("background-color:").append(owner.getCouleur()).append("; ");
                     }
                 }
-                html.append("'>"); // fin du style='...'
 
-                // 1) Afficher l’image correspondant à la baseType
-                switch (bt) {
-                    case VILLE:
-                        html.append("<img src='/ProjetJ2ee/vue/images/castle.png' alt='Ville' style='width:100%;height:100%;'/>");
-                        break;
-                    case FORET:
-                        html.append("<img src='/ProjetJ2ee/vue/images/forest.png' alt='Forêt' style='width:100%;height:100%;'/>");
-                        break;
-                    case MONTAGNE:
-                        html.append("<img src='/ProjetJ2ee/vue/images/mountain.png' alt='Montagne' style='width:100%;height:100%;'/>");
-                        break;
-                    case VIDE:
-                        // rien ou image vide
-                        break;
+                html.append("'>"); // Fin du style
+
+                // Ajouter l'image du terrain (arrière-plan)
+                if (bt == TypeTuile.FORET) {
+                    html.append("<div class='background'>")
+                        .append("<img src='/ProjetJ2ee/vue/images/forest.png' alt='Forêt' style='width:100%; height:100%;'/>")
+                        .append("</div>");
+                } else if (bt == TypeTuile.VILLE) {
+                    html.append("<div class='background'>")
+                        .append("<img src='/ProjetJ2ee/vue/images/castle.png' alt='Ville' style='width:100%; height:100%;'/>")
+                        .append("</div>");
+                } else if (bt == TypeTuile.MONTAGNE) {
+                    html.append("<div class='background'>")
+                        .append("<img src='/ProjetJ2ee/vue/images/mountain.png' alt='Montagne' style='width:100%; height:100%;'/>")
+                        .append("</div>");
                 }
 
-                // 2) Si un soldat est présent, afficher le soldat avec le gameId
-                Soldat soldat = tuile.getSoldatPresent();
+                // Ajouter l'image du soldat (premier plan)
                 if (soldat != null) {
-                    String soldierId = soldat.getPositionX() + "_" + soldat.getPositionY();
-
-                    html.append("<a href='/ProjetJ2ee/controller?action=selectSoldier")
+                    html.append("<div class='foreground'>")
+                        .append("<a href='/ProjetJ2ee/controller?action=selectSoldier")
                         .append("&gameId=").append(gameId)
-                        .append("&soldierId=").append(soldierId)
+                        .append("&soldierId=").append(soldat.getPositionX()).append("_").append(soldat.getPositionY())
                         .append("'>")
-                        .append("<img src='/ProjetJ2ee/vue/images/knight.png' alt='Soldat' style='width:100%;height:100%;'/>")
-                        .append("</a>");
+                        .append("<img src='/ProjetJ2ee/vue/images/knight.png' alt='Soldat' style='width:100%; height:100%;'/>")
+                        .append("</a>")
+                        .append("</div>");
                 }
 
                 html.append("</td>");

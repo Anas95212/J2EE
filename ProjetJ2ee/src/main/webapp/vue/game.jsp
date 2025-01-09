@@ -74,16 +74,35 @@
 		    border-collapse: collapse;
 		}
         .game-grid td {
-            width: 50px;
-            height: 50px;
-            border: 1px solid #ccc;
-            text-align: center;
-        }
-        .game-grid td img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ccc;
+}
+
+.game-grid .background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Arrière-plan */
+}
+
+.game-grid .foreground {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2; /* Soldat au-dessus */
+}
+
+.game-grid img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
         .actions {
 		    flex: 0 1 auto;
 		    text-align: center;
@@ -305,14 +324,26 @@
                 <button type="submit" <%= !isMyTurn ? "disabled" : "" %>>Fin de tour</button>
             </form>
             
+            
+            <%
+    Joueur moi = null;
+    for (Joueur j : partie.getJoueurs()) {
+        if (j.getLogin().equals(pseudo)) {
+            moi = j;
+            break;
+        }
+    }
+%>
+            
+            
             <!-- SHOP -->
 		    <div class="shop">
 		        <h2>Shop</h2>
-		        <p>Votre monnaie : <span id="player-coins"><%= current.getPointsDeProduction() %></span> pièces</p>
+		        <p>Votre monnaie : <span id="player-coins"><%= moi.getPointsDeProduction() %></span> pièces</p>
 		        <form action="<%= request.getContextPath() %>/controller" method="post">
 		            <input type="hidden" name="action" value="buySoldier"/>
 		            <input type="hidden" name="gameId" value="<%= gameId %>"/>
-		            <button type="submit" <%= current.getPointsDeProduction() < 15 ? "disabled" : "" %>>
+		            <button type="submit" <%= moi.getPointsDeProduction() < 15 ? "disabled" : "" %>>
 		                Acheter un soldat (15 pièces)
 		            </button>
 		        </form>

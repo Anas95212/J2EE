@@ -40,8 +40,6 @@
     boolean jeSuisSoldat1 = s1.getOwner().getLogin().equals(pseudo);
     boolean jeSuisSoldat2 = s2.getOwner().getLogin().equals(pseudo);
     boolean jeSuisDansLeCombat = (jeSuisSoldat1 || jeSuisSoldat2);
-    String couleur1 = s1.getOwner().getCouleur();
-    String couleur2 = s2.getOwner().getCouleur();
 %>
 <!DOCTYPE html>
 <html>
@@ -85,28 +83,28 @@
         }
  
         .soldier1 img {
-            border-color: <%= couleur1 %>;
+            border-color: #bf616a;
         }
  
         .soldier2 img {
-            border-color: <%= couleur2 %>;
+            border-color: #a3be8c;
         }
-		.health-bar-container {
-		    width: 100%; /* Utiliser toute la largeur disponible */
-		    margin: 0 auto 10px;
-		    height: 15px;
-		    background-color: #4c566a;
-		    border-radius: 10px;
-		    overflow: hidden;
-		    position: relative;
-		}
-		 
-		.health-bar {
-		    height: 100%;
-		    background: linear-gradient(to right, #a3be8c, #ebcb8b, #bf616a);
-		    transition: width 0.3s ease;
-		    width: 93%; /* Par défaut 100% pour éviter les erreurs visuelles */
-		}
+.health-bar-container {
+    width: 100%; /* Utiliser toute la largeur disponible */
+    margin: 0 auto 10px;
+    height: 15px;
+    background-color: #4c566a;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+ 
+.health-bar {
+    height: 100%;
+    background: linear-gradient(to right, #a3be8c, #ebcb8b, #bf616a);
+    transition: width 0.3s ease;
+    width: 93%; /* Par défaut 100% pour éviter les erreurs visuelles */
+}
  
  
         .health-info {
@@ -141,11 +139,11 @@
         }
  
         .turn-indicator span {
-            color: <%= couleur1 %>;
+            color: #bf616a;
         }
  
         .turn-indicator .soldat2 {
-            color: <%= couleur2 %>;
+            color: #a3be8c;
         }
  
         .de {
@@ -209,13 +207,21 @@
                     } else if (data.type === "combatEnd") {
                         console.log("Fin du combat détectée. Retour à la carte du jeu.");
                         window.location.href = data.redirect;
-                    } else if (data.type === "defeat" && data.pseudo === "<%= pseudo %>") {
+                    }else if (data.type === "defeat" && data.pseudo === "<%= pseudo %>") {
                         alert("Vous avez perdu !");
-                        window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp?pseudo=" + encodeURIComponent(pseudo) + "&gameId=" + encodeURIComponent(gameId) + "&score=" + encodeURIComponent(data.score);
-                    } else if (data.type === "victory" && data.pseudo === "<%= pseudo %>") {
+                        window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp"
+                            + "?pseudo=" + encodeURIComponent(pseudo)
+                            + "&score=" + encodeURIComponent(data.score)
+                            + "&gameId=" + encodeURIComponent(gameId);
+
+                      } else if (data.type === "victory" && data.pseudo === "<%= pseudo %>") {
                         alert("Félicitations, vous avez gagné !");
-                        window.location.href = "<%= request.getContextPath() %>/vue/victoire.jsp?pseudo=" + encodeURIComponent(pseudo) + "&gameId=" + encodeURIComponent(gameId) + "&score=" + encodeURIComponent(data.score);
-                    } else {
+                        window.location.href = "<%= request.getContextPath() %>/vue/victoire.jsp"
+                            + "?pseudo=" + encodeURIComponent(pseudo)
+                            + "&score=" + encodeURIComponent(data.score)
+                            + "&gameId=" + encodeURIComponent(gameId);
+
+                      } else {
                         console.log("Message WebSocket reçu :", data);
                     }
                 } catch (error) {
@@ -250,12 +256,13 @@
             fetch("<%= request.getContextPath() %>/CombatController?action=getState&gameId=" + gameId + "&combatId=" + combatId)
                 .then(response => response.json())
                 .then(data => {
+                	console.log('Réponse du serveur =', data);
                     if (data.error) {
                         console.error("Erreur combat:", data.error);
                         return;
                     }
  
-                    updateHealthBars(data.s1.getPointsDeVie(), data.s2getPointsDeVie());
+                    updateHealthBars(data.pvSoldat1, data.pvSoldat2);
  
                     const turnIndicator = document.querySelector(".turn-indicator span");
                     turnIndicator.textContent = data.tourSoldat1 ? "Soldat1" : "Soldat2";
@@ -334,12 +341,11 @@
  
     </script>
 </head>
-
 <body>
     <h1 style="color: #88c0d0; margin-top: 20px;">Combat en cours</h1>
     <div class="combat-container">
 <div class="soldier soldier1">
-    <h2 style="color: <%= couleur1 %>;">Soldat 1 (propriétaire : <%= s1.getOwner().getLogin() %>)</h2>
+    <h2 style="color: #bf616a;">Soldat 1 (propriétaire : <%= s1.getOwner().getLogin() %>)</h2>
     <img src="<%= request.getContextPath() %>/vue/images/knight.png" alt="Soldat1">
     <div class="health-bar-container">
         <div class="health-bar" id="healthBar1" style="width: <%= (combat.getPvSoldat1() * 100 / 20) %>%"></div>
@@ -347,7 +353,7 @@
     <div class="health-info" id="healthInfo1">PV : <%= combat.getPvSoldat1() %></div>
 </div>
 <div class="soldier soldier2">
-    <h2 style="color: <%= couleur2 %>;">Soldat 2 (propriétaire : <%= s2.getOwner().getLogin() %>)</h2>
+    <h2 style="color: #a3be8c;">Soldat 2 (propriétaire : <%= s2.getOwner().getLogin() %>)</h2>
     <img src="<%= request.getContextPath() %>/vue/images/knight.png" alt="Soldat2">
     <div class="health-bar-container">
         <div class="health-bar" id="healthBar2" style="width: <%= (combat.getPvSoldat2() * 100 / 20) %>%"></div>
