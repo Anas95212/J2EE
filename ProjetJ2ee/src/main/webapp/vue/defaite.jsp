@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="java.sql.Connection, java.sql.PreparedStatement, java.sql.SQLException, controller.DatabaseConnection" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -43,13 +44,35 @@
     <h1>Défaite...</h1>
     
     
-        <%
+<%
     String pseudo = request.getParameter("pseudo");
     String score = request.getParameter("score");
+    String gameId = request.getParameter("gameId"); // Ajoutez cette valeur dans vos paramètres
 
-    if (pseudo == null || score == null) {
+    if (pseudo == null || score == null || gameId == null) {
         out.println("Erreur : paramètres manquants !");
         return;
+    }
+
+    try (Connection conn = DatabaseConnection.getConnection()) {
+        // Préparer l'insertion dans la base de données
+        String insertQuery = "INSERT INTO zinee91_j2ee.parties (id_partie, pseudo_joueur , score_joueur) VALUES (?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(insertQuery)) {
+            stmt.setString(1, gameId);
+            stmt.setString(2, pseudo);
+            stmt.setInt(3, Integer.parseInt(score));
+
+            int rowsInserted = stmt.executeUpdate();
+
+            if (rowsInserted > 0) {
+                out.println("<p style='color: lightgreen;'>Les informations de défaite ont été enregistrées dans la base de données.</p>");
+            } else {
+                out.println("<p style='color: red;'>Une erreur est survenue lors de l'enregistrement.</p>");
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+        out.println("<p style='color: red;'>Erreur lors de la connexion à la base de données : " + e.getMessage() + "</p>");
     }
 %>
     

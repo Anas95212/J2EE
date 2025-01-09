@@ -556,14 +556,12 @@ public class ActionsController {
 
         // 9) Ajouter de la vie au soldat
         int currentLife = soldat.getPointsDeVie();
-        int maxLife = 100;
+        int maxLife = 20;
         if (currentLife < maxLife) {
-            // Ajout de vie, vérifier la capacité maximale
-            int addedLife = Math.min(10, maxLife - currentLife); // Exemple : ajout de 10 points de vie
-            soldat.setPointsDeVie(currentLife + addedLife);
+            soldat.setPointsDeVie(20);
 
             // Confirmer l'ajout de vie
-            request.setAttribute("lifeMessage", "Vous avez ajouté " + addedLife + " points de vie à votre soldat.");
+            request.setAttribute("lifeMessage", "Vous avez ajouté " + 20 + " points de vie à votre soldat.");
 
         } else {
             request.setAttribute("errorlife", "Ce soldat a déjà toute sa vie, veuillez effectuer une autre action !");

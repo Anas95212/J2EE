@@ -40,6 +40,8 @@
     boolean jeSuisSoldat1 = s1.getOwner().getLogin().equals(pseudo);
     boolean jeSuisSoldat2 = s2.getOwner().getLogin().equals(pseudo);
     boolean jeSuisDansLeCombat = (jeSuisSoldat1 || jeSuisSoldat2);
+    String couleur1 = s1.getOwner().getCouleur();
+    String couleur2 = s2.getOwner().getCouleur();
 %>
 <!DOCTYPE html>
 <html>
@@ -83,28 +85,28 @@
         }
  
         .soldier1 img {
-            border-color: #bf616a;
+            border-color: <%= couleur1 %>;
         }
  
         .soldier2 img {
-            border-color: #a3be8c;
+            border-color: <%= couleur2 %>;
         }
-.health-bar-container {
-    width: 100%; /* Utiliser toute la largeur disponible */
-    margin: 0 auto 10px;
-    height: 15px;
-    background-color: #4c566a;
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
-}
- 
-.health-bar {
-    height: 100%;
-    background: linear-gradient(to right, #a3be8c, #ebcb8b, #bf616a);
-    transition: width 0.3s ease;
-    width: 93%; /* Par défaut 100% pour éviter les erreurs visuelles */
-}
+		.health-bar-container {
+		    width: 100%; /* Utiliser toute la largeur disponible */
+		    margin: 0 auto 10px;
+		    height: 15px;
+		    background-color: #4c566a;
+		    border-radius: 10px;
+		    overflow: hidden;
+		    position: relative;
+		}
+		 
+		.health-bar {
+		    height: 100%;
+		    background: linear-gradient(to right, #a3be8c, #ebcb8b, #bf616a);
+		    transition: width 0.3s ease;
+		    width: 93%; /* Par défaut 100% pour éviter les erreurs visuelles */
+		}
  
  
         .health-info {
@@ -139,11 +141,11 @@
         }
  
         .turn-indicator span {
-            color: #bf616a;
+            color: <%= couleur1 %>;
         }
  
         .turn-indicator .soldat2 {
-            color: #a3be8c;
+            color: <%= couleur2 %>;
         }
  
         .de {
@@ -207,27 +209,12 @@
                     } else if (data.type === "combatEnd") {
                         console.log("Fin du combat détectée. Retour à la carte du jeu.");
                         window.location.href = data.redirect;
-                    }else if (data.type === "defeat" && data.pseudo === "<%= pseudo %>") {
+                    } else if (data.type === "defeat" && data.pseudo === "<%= pseudo %>") {
                         alert("Vous avez perdu !");
-                        // Redirection VERS defaite.jsp
-                        // On y ajoute le score récupéré dans data.score
-                        window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp"
-                            + "?pseudo=" + encodeURIComponent(pseudo)
-                            + "&score=" + encodeURIComponent(data.score)
-                            + "&gameId=" + encodeURIComponent(gameId);
-
+                        window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp?pseudo=" + encodeURIComponent(pseudo) + "&gameId=" + encodeURIComponent(gameId) + "&score=" + encodeURIComponent(data.score);
                     } else if (data.type === "victory" && data.pseudo === "<%= pseudo %>") {
                         alert("Félicitations, vous avez gagné !");
-
-                        // data.scores est un tableau de {pseudo, score} pour tous les joueurs.
-                        // On le passe dans l’URL en JSON sérialisé
-                        // ATTENTION : il faut l'encoder pour éviter les problèmes d'espaces/spéciaux
-                        
-                        window.location.href = "<%= request.getContextPath() %>/vue/victoire.jsp"
-                            + "?pseudo=" + encodeURIComponent(pseudo)
-                            + "&score=" + encodeURIComponent(data.score)
-                            + "&gameId=" + encodeURIComponent(gameId);
-
+                        window.location.href = "<%= request.getContextPath() %>/vue/victoire.jsp?pseudo=" + encodeURIComponent(pseudo) + "&gameId=" + encodeURIComponent(gameId) + "&score=" + encodeURIComponent(data.score);
                     } else {
                         console.log("Message WebSocket reçu :", data);
                     }
@@ -268,7 +255,7 @@
                         return;
                     }
  
-                    updateHealthBars(data.pvSoldat1, data.pvSoldat2);
+                    updateHealthBars(data.s1.getPointsDeVie(), data.s2getPointsDeVie());
  
                     const turnIndicator = document.querySelector(".turn-indicator span");
                     turnIndicator.textContent = data.tourSoldat1 ? "Soldat1" : "Soldat2";
@@ -347,11 +334,12 @@
  
     </script>
 </head>
+
 <body>
     <h1 style="color: #88c0d0; margin-top: 20px;">Combat en cours</h1>
     <div class="combat-container">
 <div class="soldier soldier1">
-    <h2 style="color: #bf616a;">Soldat 1 (propriétaire : <%= s1.getOwner().getLogin() %>)</h2>
+    <h2 style="color: <%= couleur1 %>;">Soldat 1 (propriétaire : <%= s1.getOwner().getLogin() %>)</h2>
     <img src="<%= request.getContextPath() %>/vue/images/knight.png" alt="Soldat1">
     <div class="health-bar-container">
         <div class="health-bar" id="healthBar1" style="width: <%= (combat.getPvSoldat1() * 100 / 20) %>%"></div>
@@ -359,7 +347,7 @@
     <div class="health-info" id="healthInfo1">PV : <%= combat.getPvSoldat1() %></div>
 </div>
 <div class="soldier soldier2">
-    <h2 style="color: #a3be8c;">Soldat 2 (propriétaire : <%= s2.getOwner().getLogin() %>)</h2>
+    <h2 style="color: <%= couleur2 %>;">Soldat 2 (propriétaire : <%= s2.getOwner().getLogin() %>)</h2>
     <img src="<%= request.getContextPath() %>/vue/images/knight.png" alt="Soldat2">
     <div class="health-bar-container">
         <div class="health-bar" id="healthBar2" style="width: <%= (combat.getPvSoldat2() * 100 / 20) %>%"></div>

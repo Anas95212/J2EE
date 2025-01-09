@@ -93,7 +93,6 @@
 %>
 </head>
 <body>
- 
     <div class="profile-container">
         <h1>Mon Profil</h1>
  
@@ -105,7 +104,8 @@
         <div class="profile-data">
             <strong>Score total :</strong>
             <%= scoreTotal %>
-        </div>
+        </div></br>
+        </br>
  
         <!-- BOUTON RETOUR LOBBY -->
         <a class="btn-lobby" href="<%= request.getContextPath() + "/lobby" %>">

@@ -10,7 +10,6 @@ import model.Combat;
 import model.Partie;
 import model.Soldat;
 import model.Joueur;
-import controller.PartieWebSocket;
 import java.util.*;
 @WebServlet("/CombatController")
 public class CombatController extends HttpServlet {
@@ -93,12 +92,12 @@ public class CombatController extends HttpServlet {
         if (!combat.isEnCours()) {
         	if (combat.getPvSoldat1() <= 0) {
                 enleverSoldatDeLaCarte(combat.getSoldat1(), partie);
-                combat.getSoldat2().getOwner().incrementerScore(10);
+                combat.getSoldat2().getOwner().incrementerScore(100);
                 PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat1().getOwner().getLogin());
             }
             if (combat.getPvSoldat2() <= 0) {
                 enleverSoldatDeLaCarte(combat.getSoldat2(), partie);
-                combat.getSoldat1().getOwner().incrementerScore(10);
+                combat.getSoldat1().getOwner().incrementerScore(100);
                 PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat2().getOwner().getLogin());
             }
             Joueur vainqueur = checkForVictory(partie);

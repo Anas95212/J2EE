@@ -2,8 +2,6 @@ package controller;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import jakarta.websocket.*;
@@ -669,7 +667,7 @@ public class PartieWebSocket {
             sb.append("\"type\":\"gameUpdate\",");
             sb.append("\"gameId\":\"").append(gameId).append("\",");
             sb.append("\"currentPlayer\":\"").append(partie.getJoueurs().get(partie.getIndexJoueurActuel()).getLogin()).append("\",");
-            sb.append("\"carte\":").append(partie.getCarte().toJSON()); // Ajoute une méthode `toJSON` dans Carte
+            sb.append("\"carte\":").append(partie.getCarte().toJSON()); // Ajoute une méthode toJSON dans Carte
             sb.append("}");
             json = sb.toString();
         } catch (Exception e) {
@@ -740,8 +738,6 @@ public class PartieWebSocket {
         }
         
         broadcastScores(partie.getGameId(),partie.getJoueurs());
-        
-        storeGameScore(gameId, pseudo, joueurElimine.getScore());
     }
 
     public static void broadcastGameEnd(String gameId) {
@@ -763,40 +759,28 @@ public class PartieWebSocket {
             System.err.println("Erreur : Partie introuvable pour gameId=" + gameId);
             return;
         }
-        
-        // Trouver le joueur vainqueur
         Joueur vainqueur = partie.getJoueurs().stream()
-                                 .filter(j -> j.getLogin().equals(pseudo))
-                                 .findFirst()
-                                 .orElse(null);
-        if (vainqueur == null) {
-            System.err.println("Erreur : Joueur introuvable pour pseudo=" + pseudo);
-            return;
-        }
+                .filter(j -> j.getLogin().equals(pseudo))
+                .findFirst()
+                .orElse(null);
         
-        // Construire le message JSON (un seul score, celui du vainqueur)
-        String msg = "{\"type\":\"victory\","
-                   + "\"pseudo\":\"" + pseudo + "\","
-                   + "\"score\":" + vainqueur.getScore() + "}";
-        
+        // Construire le message JSON complet
+        String msg = "{\"type\":\"victory\",\"pseudo\":\"" + pseudo + "\",\"score\":" + vainqueur.getScore() + "}";
+
         // Envoyer le message à tous les joueurs de la partie
         for (Session s : clients.keySet()) {
             if (gameId.equals(clients.get(s))) {
                 try {
                     s.getBasicRemote().sendText(msg);
-                    System.out.println("[WebSocket] Envoi du message victoire : " + msg);
+                    System.out.println("[WebSocket] Envoi du message des score pour le vainqueur : " + msg);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
         
-        // On peut garder si besoin : fin de partie, etc.
-        // broadcastGameEnd(partie.getGameId());
-        
-        storeGameScore(gameId, vainqueur.getLogin(), vainqueur.getScore());
+        broadcastScores(partie.getGameId(),partie.getJoueurs());
     }
-
 
 
     public static void fetchScores(String gameId, Session session) {
@@ -852,31 +836,6 @@ public class PartieWebSocket {
                     e.printStackTrace();
                 }
             }
-        }
-    }
-
-    
-    private static void storeGameScore(String gameId, String pseudo, int score) {
-        // Ici, on stocke gameId en VARCHAR => on fait un simple setString(1, gameId)
-        try (Connection conn = DatabaseConnection.getConnection()) {
-
-            String insertSQL = "INSERT INTO parties (id_partie, pseudo_joueur, score_joueur) VALUES (?, ?, ?)";
-            try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
-                stmt.setString(1, gameId);     // On insère le gameId tel quel (VARCHAR)
-                stmt.setString(2, pseudo);
-                stmt.setInt(3, score);
-
-                int rows = stmt.executeUpdate();
-                if (rows > 0) {
-                    System.out.println("[storeGameScore] Score inséré avec succès : "
-                            + "gameId=" + gameId + ", pseudo=" + pseudo + ", score=" + score);
-                } else {
-                    System.err.println("[storeGameScore] Aucune ligne insérée...");
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 

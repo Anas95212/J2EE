@@ -1,12 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="controller.ScoreController" %>
-<%@ page import="controller.ScoreController.ScoreData" %>
-<%@ page import="java.util.List" %>
+<%@ page import="java.sql.Connection, java.sql.PreparedStatement, java.sql.SQLException, controller.DatabaseConnection" %>
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Victoire</title>
-    <style>
+<title>Victoire</title>
+<style>
         body {
             font-family: 'Arial', sans-serif;
             background-color: #2d2d2d;
@@ -40,14 +38,12 @@
             background-color: #4CAF50;
             color: white;
         }
-    </style>
+</style>
 </head>
 <body>
-    <h1>Victoire !</h1>
-    <p>Félicitations, vous êtes le dernier joueur en vie et vous avez remporté la partie !</p>
-    
-    
-         <%
+<h1>Victoire !</h1>
+<p>Félicitations, vous êtes le dernier joueur en vie et vous avez remporté la partie !</p>
+<%
         String pseudo = request.getParameter("pseudo");
         String score = request.getParameter("score");
         String gameId = request.getParameter("gameId");
@@ -56,54 +52,29 @@
             out.println("Erreur : paramètres manquants !");
             return;
         }
-    %>
-    
-<h2>Bravo <%= pseudo %>, vous êtes le vainqueur !</h2>
-    <p>Votre score final : <%= score %></p>
-    
-    
-        // Afficher les infos vainqueur
-    %>
-    <h2>Bravo <%= pseudo %>, vous êtes le vainqueur !</h2>
-    <p>Votre score final : <%= score %></p>
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Préparer l'insertion dans la base de données
+            String insertQuery = "INSERT INTO zinee91_j2ee.parties (id_partie, pseudo_joueur , score_joueur) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(insertQuery)) {
+                stmt.setString(1, gameId);
+                stmt.setString(2, pseudo);
+                stmt.setInt(3, Integer.parseInt(score));
 
-    <%
-        // Appeler ScoreController pour récupérer tous les scores de cette partie
-        List<ScoreData> listeScores = null;
-        if (gameId != null && !gameId.isEmpty()) {
-            ScoreController sc = new ScoreController();
-            listeScores = sc.getScoresForGameId(gameId);
-        }
-    %>
+                int rowsInserted = stmt.executeUpdate();
 
-    <!-- Afficher la liste des scores -->
-    <h3>Scores de la partie (id_partie = <%= gameId %>):</h3>
-    <%
-        if (listeScores != null && !listeScores.isEmpty()) {
-    %>
-        <table>
-            <tr>
-                <th>Pseudo</th>
-                <th>Score</th>
-            </tr>
-            <%
-                for (ScoreData sd : listeScores) {
-            %>
-            <tr>
-                <td><%= sd.getPseudo() %></td>
-                <td><%= sd.getScore() %></td>
-            </tr>
-            <%
+                if (rowsInserted > 0) {
+                    out.println("<p style='color: lightgreen;'>Les informations de défaite ont été enregistrées dans la base de données.</p>");
+                } else {
+                    out.println("<p style='color: red;'>Une erreur est survenue lors de l'enregistrement.</p>");
                 }
-            %>
-        </table>
-    <%
-        } else {
-            out.println("<p>Aucun score trouvé pour cette partie.</p>");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            out.println("<p style='color: red;'>Erreur lors de la connexion à la base de données : " + e.getMessage() + "</p>");
         }
-    %>
-    
-    
-    <a href="<%= request.getContextPath() %>/vue/lobby.jsp">Retour au Lobby</a>
+%>
+<h2>Bravo <%= pseudo %>, vous êtes le vainqueur !</h2>
+<p>Votre score final : <%= score %></p>
+<a href="<%= request.getContextPath() %>/vue/lobby.jsp">Retour au Lobby</a>
 </body>
 </html>
