@@ -1,5 +1,6 @@
 package controller;
 
+import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -838,6 +839,72 @@ public class PartieWebSocket {
             }
         }
     }
+    
+    public static void broadcastCombatVilleStart(String gameId, String combatId) {
+        // Construire l'URL de redirection
+        String contextPath = "/ProjetJ2ee"; // à adapter selon ton contexte
+        String redirectUrl = contextPath + "/vue/cityCombat.jsp?gameId=" + gameId + "&combatId=" + combatId;
+
+        // Construire le message JSON
+        String msg = "{\"type\":\"combatVilleStart\",\"redirect\":\"" + redirectUrl + "\"}";
+
+        // Envoyer ce message à toutes les sessions de la partie 'gameId'
+        for (Session s : clients.keySet()) {
+            if (gameId.equals(clients.get(s))) {
+                try {
+                    s.getBasicRemote().sendText(msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    
+    public static void broadcastCombatVilleEnd(String gameId) {
+        // On prépare un message JSON simple
+        String contextPath = "/ProjetJ2ee"; // ou ton contexte
+        String redirectUrl = contextPath + "/vue/game.jsp?gameId=" + gameId;
+
+        // Par ex. : { "type": "combatVilleEnd", "redirect": "/ProjetJ2ee/vue/game.jsp?gameId=XXX" }
+        String msg = "{\"type\":\"combatVilleEnd\",\"redirect\":\"" + redirectUrl + "\"}";
+
+        // Envoyer le message à toutes les sessions de la partie
+        for (Session s : clients.keySet()) {
+            if (gameId.equals(clients.get(s))) {
+                try {
+                    s.getBasicRemote().sendText(msg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    
+    
+    public static void broadcastCombatVilleUpdate(String gameId,
+            int pvSoldat,
+            int defVille,
+            boolean tourSoldat,
+            int valeurDe) {
+// Construire un JSON
+String msg = String.format(
+"{\"type\":\"combatVilleUpdate\",\"pvSoldat\":%d,\"defVille\":%d,\"tourSoldat\":%b,\"valeurDe\":%d}",
+pvSoldat, defVille, tourSoldat, valeurDe
+);
+
+// Envoyer à toutes les sessions du gameId
+for (Session s : clients.keySet()) {
+if (gameId.equals(clients.get(s))) {
+try {
+s.getBasicRemote().sendText(msg);
+} catch (IOException e) {
+e.printStackTrace();
+}
+}
+}
+}
+
+
 
 
     

@@ -13,7 +13,9 @@ import model.Joueur;
 import model.Soldat;
 import model.Tuile;
 import model.Tuile.TypeTuile;
+import model.Ville;
 import model.Combat;
+import model.CombatVille;
 
 /**
  * ActionsController gère toutes les actions de jeu :
@@ -146,6 +148,7 @@ public class ActionsController {
             redirectToGameJsp(request, response);
             return;
         }
+
         Soldat s = oldTile.getSoldatPresent();
         if (!s.getOwner().getLogin().equals(pseudo)) {
             request.setAttribute("error", "Ce soldat ne vous appartient pas.");
@@ -170,24 +173,26 @@ public class ActionsController {
             return;
         }
 
-        // Vérif MONTAGNE
         Tuile newTile = partie.getCarte().getTuile(newX, newY);
         if (newTile == null) {
             request.setAttribute("error", "Tuile cible introuvable !");
             redirectToGameJsp(request, response);
             return;
-        }else if (newTile.getBaseType() == TypeTuile.MONTAGNE) {
+        }
+
+        // Vérif MONTAGNE
+        if (newTile.getBaseType() == TypeTuile.MONTAGNE) {
             request.setAttribute("error", "Impossible de traverser la montagne !");
             redirectToGameJsp(request, response);
             return;
         }
 
-        // Vérification collision
+        // Vérification collision avec un soldat
         Soldat defenseur = newTile.getSoldatPresent();
         if (defenseur != null) {
             // S'il y a un soldat sur cette tuile => ennemi ou allié ?
             if (!defenseur.getOwner().getLogin().equals(pseudo)) {
-                // ENNEMI => Lancer un combat
+                // ENNEMI => Lancer un combat soldat vs soldat
                 doCombat(partie, s, defenseur, gameId, request, response);
                 return;
             } else {
@@ -197,38 +202,88 @@ public class ActionsController {
                 return;
             }
         }
-        //Joueur j = newTile.getBaseType().
-        if (newTile.getBaseType() == TypeTuile.VILLE) {
-            response.sendRedirect(request.getContextPath() + "/vue/combat.jsp");
-            return;
+
+     // Vérification si la tuile est une Ville
+        if (newTile.getBaseType() == TypeTuile.VILLE && newTile instanceof Ville) {
+            Ville ville = (Ville) newTile;
+
+            // Cas : la ville a déjà un propriétaire
+            if (ville.getProprietaire() != null) {
+                // Si c'est le même que le soldat => PAS de combat
+                if (ville.getProprietaire().equals(s.getOwner())) {
+                    // ==> On se déplace VRAIMENT sur la ville
+                    oldTile.setSoldatPresent(null);
+                    newTile.setSoldatPresent(s);
+                    s.setPositionX(newX);
+                    s.setPositionY(newY);
+
+                    // Stocker undo si on veut annuler plus tard
+                    request.getSession().setAttribute("undoX", oldX);
+                    request.getSession().setAttribute("undoY", oldY);
+
+                    // Marquer l'action comme utilisée
+                    request.getSession().setAttribute("actionUsedThisTurn", true);
+
+                    // Mettre soldierId à jour
+                    request.getSession().setAttribute("selectedSoldierId", newX + "_" + newY);
+
+                    // Rediriger vers la page de jeu
+                    redirectToGameJsp(request, response);
+                    return;
+
+                } else {
+                    // Ville ennemie => Combat Soldat vs Ville
+                    CombatVille combatVille = new CombatVille(s, ville);
+                    partie.setCombatVilleEnCours(combatVille);
+                    PartieWebSocket.broadcastCombatVilleStart(gameId, combatVille.getCombatId());
+
+                    response.sendRedirect(request.getContextPath()
+                         + "/vue/cityCombat.jsp?gameId=" + gameId
+                         + "&combatId=" + combatVille.getCombatId());
+                    return;
+                }
+            } else {
+                // Ville neutre => lancer un combat Soldat vs Ville
+                CombatVille combatVille = new CombatVille(s, ville);
+                partie.setCombatVilleEnCours(combatVille);
+                PartieWebSocket.broadcastCombatVilleStart(gameId, combatVille.getCombatId());
+
+                response.sendRedirect(request.getContextPath()
+                     + "/vue/cityCombat.jsp?gameId=" + gameId
+                     + "&combatId=" + combatVille.getCombatId());
+                return;
+            }
         }
-        
-        // Pas de collision => on déplace
+
+
+        // Aucune collision ni ville => on déplace simplement le soldat
         oldTile.setSoldatPresent(null);
         newTile.setSoldatPresent(s);
         s.setPositionX(newX);
         s.setPositionY(newY);
-        
+
+        // Si c'est une forêt => gain de 5 pièces (max 50)
         if (newTile.getBaseType() == TypeTuile.FORET) {
             Joueur owner = s.getOwner();
             if (owner != null) {
                 int currentPoints = owner.getPointsDeProduction();
                 if (currentPoints < 50) {
-
-                    // Limite les points pour ne pas dépasser le maximum
                     currentPoints = currentPoints + 5;
+                    if (currentPoints > 50) currentPoints = 50;
                     owner.setPointsDeProduction(currentPoints);
 
-                    // Préparer un message pour afficher ce qui s'est passé
-                    String message = "Le joueur " + owner.getLogin() + " a gagné 5 points de production en entrant dans une forêt. Total : " + currentPoints + " pièces.";
+                    String message = "Le joueur " + owner.getLogin()
+                            + " a gagné 5 points de production en entrant dans une forêt. Total : "
+                            + currentPoints + " pièces.";
                     request.getSession().setAttribute("dernierMessage", message);
                 } else {
-                	String message = "Le joueur " + owner.getLogin() + " a atteint le maximum de 50 pièces. Aucun point ajouté.";
-                	request.getSession().setAttribute("dernierMessage", message);
+                    String message = "Le joueur " + owner.getLogin() 
+                            + " a atteint le maximum de 50 pièces. Aucun point ajouté.";
+                    request.getSession().setAttribute("dernierMessage", message);
                 }
             }
         }
-        
+
         // Stocker undo si on veut l'annuler
         request.getSession().setAttribute("undoX", oldX);
         request.getSession().setAttribute("undoY", oldY);
@@ -244,6 +299,7 @@ public class ActionsController {
 
         redirectToGameJsp(request, response);
     }
+
 
     /**
      * 3) Annuler le déplacement (undoMove)

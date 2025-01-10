@@ -90,16 +90,24 @@ public class CombatController extends HttpServlet {
  
         // Vérifier si le combat est terminé
         if (!combat.isEnCours()) {	
+        	Joueur perdant = null;
+        	boolean combatTermine = false;
         	if (combat.getPvSoldat1() <= 0) {
                 enleverSoldatDeLaCarte(combat.getSoldat1(), partie);
                 combat.getSoldat2().getOwner().incrementerScore(100);
-                PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat1().getOwner().getLogin());
+                combatTermine = true;
+                perdant = combat.getSoldat1().getOwner();
+                PartieWebSocket.broadcastDefeat(partie.getGameId(),perdant.getLogin());
+                
             }
             if (combat.getPvSoldat2() <= 0) {
                 enleverSoldatDeLaCarte(combat.getSoldat2(), partie);
                 combat.getSoldat1().getOwner().incrementerScore(100);
                 PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat2().getOwner().getLogin());
+                combatTermine = true;
+                perdant = combat.getSoldat2().getOwner();
             }
+            
             Joueur vainqueur = checkForVictory(partie);
             
             if (vainqueur != null) {

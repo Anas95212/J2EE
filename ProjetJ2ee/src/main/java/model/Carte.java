@@ -117,42 +117,54 @@ public class Carte {
     public String toHTML(String gameId) {
         StringBuilder html = new StringBuilder();
         html.append("<table class='game-grid'>");
-
+ 
         for (int x = 0; x < lignes; x++) {
             html.append("<tr>");
             for (int y = 0; y < colonnes; y++) {
                 Tuile tuile = getTuile(x, y);
                 TypeTuile bt = tuile.getBaseType();
                 Soldat soldat = tuile.getSoldatPresent();
-
+ 
                 html.append("<td style='position:relative; width:50px; height:50px; ");
-
-                // Ajouter la couleur de fond si un soldat est présent
+ 
+                // 1) S’il y a un soldat, on prend la couleur du soldat.
                 if (soldat != null) {
                     Joueur owner = soldat.getOwner();
                     if (owner != null && owner.getCouleur() != null) {
                         html.append("background-color:").append(owner.getCouleur()).append("; ");
                     }
                 }
-
-                html.append("'>"); // Fin du style
-
-                // Ajouter l'image du terrain (arrière-plan)
+                // 2) Sinon, si c'est une Ville conquise, on prend la couleur du propriétaire.
+                else if (bt == TypeTuile.VILLE && tuile instanceof Ville) {
+                    Ville laVille = (Ville) tuile;
+                    Joueur prop = laVille.getProprietaire();
+                    if (prop != null && prop.getCouleur() != null) {
+                        html.append("background-color:").append(prop.getCouleur()).append("; ");
+                    }
+                }
+ 
+                html.append("'>"); // fin du style='...'
+ 
+                // 3) Afficher l’image de base (forêt, montagne, ville...)
                 if (bt == TypeTuile.FORET) {
                     html.append("<div class='background'>")
                         .append("<img src='/ProjetJ2ee/vue/images/forest.png' alt='Forêt' style='width:100%; height:100%;'/>")
                         .append("</div>");
-                } else if (bt == TypeTuile.VILLE) {
-                    html.append("<div class='background'>")
-                        .append("<img src='/ProjetJ2ee/vue/images/castle.png' alt='Ville' style='width:100%; height:100%;'/>")
-                        .append("</div>");
-                } else if (bt == TypeTuile.MONTAGNE) {
+                }
+                else if (bt == TypeTuile.MONTAGNE) {
                     html.append("<div class='background'>")
                         .append("<img src='/ProjetJ2ee/vue/images/mountain.png' alt='Montagne' style='width:100%; height:100%;'/>")
                         .append("</div>");
                 }
-
-                // Ajouter l'image du soldat (premier plan)
+                else if (bt == TypeTuile.VILLE) {
+                    // On superpose l’image du château
+                    html.append("<div class='background'>")
+                        .append("<img src='/ProjetJ2ee/vue/images/castle.png' alt='Ville' style='width:100%; height:100%;'/>")
+                        .append("</div>");
+                }
+                // Pour les cases TypeTuile.VIDE => pas d’image de fond
+ 
+                // 4) S’il y a un soldat, on l’ajoute en premier plan (foreground)
                 if (soldat != null) {
                     html.append("<div class='foreground'>")
                         .append("<a href='/ProjetJ2ee/controller?action=selectSoldier")
@@ -163,12 +175,12 @@ public class Carte {
                         .append("</a>")
                         .append("</div>");
                 }
-
+ 
                 html.append("</td>");
             }
             html.append("</tr>");
         }
-
+ 
         html.append("</table>");
         return html.toString();
     }
@@ -217,8 +229,15 @@ public class Carte {
 
         // Placer les villes
         for (int i = 0; i < nbVilles; i++) {
-            int[] pos = positions.remove(0); // Récupérer une position aléatoire
-            mettreAJourTuile(pos[0], pos[1], TypeTuile.VILLE, false);
+            int[] pos = positions.remove(0);
+            // Créer une instance de Ville
+            Ville city = new Ville(pos[0], pos[1], 20, null); 
+            // city.setPointsDeDefense(100) si tu veux
+            // city.setProprietaire(null) => ville neutre
+
+            // On la range dans la liste des tuiles, à l’index calculé
+            int index = pos[0] * colonnes + pos[1];
+            tuiles.set(index, city); 
         }
 
         // Placer les forêts

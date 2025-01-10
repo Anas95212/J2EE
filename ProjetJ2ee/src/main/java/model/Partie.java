@@ -36,7 +36,9 @@ public class Partie {
     
     /** Combat en cours, s'il y en a un (null sinon). */
     private Combat combatEnCours;
-
+    
+    private CombatVille combatVilleEnCours;
+    
     /**
      * Constructeur par défaut (sans préciser le créateur).
      * @param nomPartie nom donné à la partie
@@ -139,7 +141,14 @@ public class Partie {
     public void setCombatEnCours(Combat combatEnCours) {
         this.combatEnCours = combatEnCours;
     }
+    
+    public CombatVille getCombatVilleEnCours() {
+        return combatVilleEnCours;
+    }
 
+    public void setCombatVilleEnCours(CombatVille combatVilleEnCours) {
+        this.combatVilleEnCours = combatVilleEnCours;
+    }
     /**
      * Retourne une liste contenant uniquement les noms (logins) des joueurs.
      */

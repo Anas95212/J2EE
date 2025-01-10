@@ -24,7 +24,7 @@ public class Ville extends Tuile {
      */
     public Ville() {
         super(0, 0, TypeTuile.VILLE, false); // Appelle le constructeur de Tuile
-        this.pointsDeDefense = 100; // Par défaut
+        this.pointsDeDefense = 20; // Par défaut
         this.proprietaire = null;  // Ville neutre
     }
 

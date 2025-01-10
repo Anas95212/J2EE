@@ -199,6 +199,10 @@
                         alert("La partie est terminée !");
                         window.location.href = "<%= request.getContextPath() %>/vue/lobby.jsp";
                     }
+                    else if (data.type === "combatVilleStart") {
+                        window.location.href = data.redirect;
+                    }
+
                     else if (data.type === "victory") {
                         if (data.pseudo === "<%= pseudo %>") {
                             alert("Félicitations, vous avez gagné !");
