@@ -93,24 +93,36 @@ public class CombatController extends HttpServlet {
         	Joueur perdant = null;
         	boolean combatTermine = false;
         	if (combat.getPvSoldat1() <= 0) {
+        		System.out.println("On rentre dans le cas soldat 1 pv < 0");
                 enleverSoldatDeLaCarte(combat.getSoldat1(), partie);
                 combat.getSoldat2().getOwner().incrementerScore(100);
                 combatTermine = true;
                 perdant = combat.getSoldat1().getOwner();
-                PartieWebSocket.broadcastDefeat(partie.getGameId(),perdant.getLogin());
+                //PartieWebSocket.broadcastDefeat(partie.getGameId(),perdant.getLogin());
+                
+                if(perdant.getUnites().isEmpty()) {
+                	PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat2().getOwner().getLogin());
+                }
+                partie.retirerJoueur(perdant);
                 
             }
             if (combat.getPvSoldat2() <= 0) {
+            	System.out.println("On rentre dans le cas soldat 2 pv < 0");
                 enleverSoldatDeLaCarte(combat.getSoldat2(), partie);
                 combat.getSoldat1().getOwner().incrementerScore(100);
-                PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat2().getOwner().getLogin());
+                //PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat2().getOwner().getLogin());
                 combatTermine = true;
                 perdant = combat.getSoldat2().getOwner();
+                if(perdant.getUnites().isEmpty()) {
+                	PartieWebSocket.broadcastDefeat(partie.getGameId(), combat.getSoldat2().getOwner().getLogin());
+                }
+                partie.retirerJoueur(perdant);
             }
             
             Joueur vainqueur = checkForVictory(partie);
             
             if (vainqueur != null) {
+            	System.out.println("On rentre dans le cas où y'a un vainqueur");
                 PartieWebSocket.broadcastVictory(partie.getGameId(), vainqueur.getLogin());
                 PartieWebSocket.broadcastGameEnd(partie.getGameId()); // Fin de la partie
                 partie.setCombatEnCours(null); // Fin du combat
@@ -118,9 +130,12 @@ public class CombatController extends HttpServlet {
             }
             // Marquer la fin du combat
             partie.setCombatEnCours(null);
+            
+            
  
             // Informer tous les joueurs de la fin du combat via WebSocket
-            PartieWebSocket.broadcastCombatEnd(partie.getGameId());
+            //PartieWebSocket.broadcastCombatEnd(partie.getGameId());
+            System.out.println("On envoie combat end");
        
         }
  

@@ -324,7 +324,7 @@
                                 // Vérifier si le combat est terminé
                                 if (!data.enCours) {
                                     alert("Le combat est terminé !");
-                                    window.location.href = "<%= request.getContextPath() %>/game.jsp?gameId=" + gameId;
+                                    window.location.href = "<%= request.getContextPath() %>/vue/game.jsp?gameId=" + gameId;
                                 }
                             }, 5000); // Laisser le dé affiché pendant 5 secondes avant de continuer
                         }, 1000); // Attendre 1 seconde pour l'animation avant d'afficher la valeur du dé
