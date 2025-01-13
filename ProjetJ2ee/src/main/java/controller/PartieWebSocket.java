@@ -709,6 +709,24 @@ public class PartieWebSocket {
         }
     }
     
+    public static void broadcastLobby(String gameId) {
+        String msg = "{\"type\":\"lobby\"}";
+        System.out.println("[WebSocket] Envoi du message lobby : " + msg);
+
+        for (Session s : clients.keySet()) {
+            String clientGameId = clients.get(s);
+            if (gameId.equals(clientGameId)) {
+                try {
+                    // Envoi uniquement le message sans affecter l'état de la partie
+                    s.getBasicRemote().sendText(msg);
+                    System.out.println("[WebSocket] client envoye au lobby : " + s.getId());
+                } catch (Exception e) {
+                    System.err.println("[WebSocket] Erreur lors de l'envoi au lobby au client " + s.getId() + " : " + e.getMessage());
+                }
+            }
+        }
+    }
+    
     
     public static void broadcastDefeat(String gameId, String pseudo) {
     	Partie partie = getPartieById(gameId);

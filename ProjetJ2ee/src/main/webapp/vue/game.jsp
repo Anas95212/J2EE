@@ -189,8 +189,12 @@
                     else if (data.type === "defeat") {
                         // Gestion de la défaite d'un joueur
                         if (data.pseudo === "<%= pseudo %>") {
+                        	console.log("==> Défaite reçue, data.pseudo=", data.pseudo, " / local pseudo=", "<%= pseudo %>");
                             alert("Vous avez été éliminé !");
-                            window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp";
+                            window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp"
+                                + "?pseudo=" + encodeURIComponent(pseudo)
+                                + "&score=" + encodeURIComponent(data.score)
+                                + "&gameId=" + encodeURIComponent(gameId);
                         } else {
                             console.log(`${data.pseudo} a été éliminé.`);
                         }
@@ -211,6 +215,11 @@
                             console.log(`${data.pseudo} a gagné la partie.`);
                         }
                     }
+                    else if (data.type === "lobby") {
+                    	console.log(`retour lobby detecté`);
+                        window.location.href = "<%= request.getContextPath() %>/vue/lobby.jsp";
+                      	console.log(`retour lobby effectué`);
+                     }
 
                 } catch (e) {
                     console.error("Erreur WebSocket :", e);

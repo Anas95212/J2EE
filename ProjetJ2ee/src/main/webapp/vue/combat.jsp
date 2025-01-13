@@ -208,6 +208,7 @@
                         console.log("Fin du combat détectée. Retour à la carte du jeu.");
                         window.location.href = data.redirect;
                     }else if (data.type === "defeat" && data.pseudo === "<%= pseudo %>") {
+                    	console.log("==> Défaite reçue, data.pseudo=", data.pseudo, " / local pseudo=", "<%= pseudo %>");
                         alert("Vous avez perdu !");
                         window.location.href = "<%= request.getContextPath() %>/vue/defaite.jsp"
                             + "?pseudo=" + encodeURIComponent(pseudo)
@@ -221,7 +222,12 @@
                             + "&score=" + encodeURIComponent(data.score)
                             + "&gameId=" + encodeURIComponent(gameId);
 
-                      } else {
+                      }else if (data.type === "lobby") {
+                      	console.log(`retour lobby detecté`);
+                        window.location.href = "<%= request.getContextPath() %>/vue/lobby.jsp";
+                      	console.log(`retour lobby effectué`);
+
+                        } else {
                         console.log("Message WebSocket reçu :", data);
                     }
                 } catch (error) {
